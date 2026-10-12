@@ -33,12 +33,21 @@ include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES 1.6.1170.0
-    SOURCES src/plugin.cpp src/Hooks.cpp src/MarkerSelectionOverride.cpp src/TravelDialog.cpp src/GameText.cpp
+    SOURCES src/plugin.cpp src/Hooks.cpp src/MarkerSelectionOverride.cpp src/TravelDialog.cpp src/GameText.cpp src/Config.cpp
 )
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /utf-8)
 
 find_package(minhook CONFIG REQUIRED)
+find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE "${SIMPLEINI_INCLUDE_DIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE minhook::minhook)
+
+# Keep the default INI beside development builds, like WMS.
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/ArbitraryFastTravel.ini"
+)
 
 include(cmake/Packaging.cmake)

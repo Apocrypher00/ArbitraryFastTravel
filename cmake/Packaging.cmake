@@ -6,6 +6,10 @@ install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION "${packagePluginDirectory}" COMPONENT ReleasePackage
 )
 
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini"
+    DESTINATION "${packagePluginDirectory}" COMPONENT ReleasePackage
+)
+
 function(install_license sourcePath outputName)
     if(NOT EXISTS "${sourcePath}")
         message(FATAL_ERROR "Required license file was not found: ${sourcePath}")
@@ -23,7 +27,7 @@ install_license("${commonlibsse_SOURCE_DIR}/EXCEPTIONS.md" "CommonLibSSE-NG-Exce
 set(vcpkgShareDirectory "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share")
 install_license("${CMAKE_SOURCE_DIR}/LICENSE" "ArbitraryFastTravel")
 
-foreach(dependency minhook directxmath directxtk fmt nlohmann-json rapidcsv spdlog toml11 xbyak)
+foreach(dependency simpleini minhook directxmath directxtk fmt nlohmann-json rapidcsv spdlog toml11 xbyak)
     install_license("${vcpkgShareDirectory}/${dependency}/copyright" "${dependency}")
 endforeach()
 

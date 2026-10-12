@@ -2,6 +2,7 @@
 #include "MarkerSelectionOverride.h"
 
 #include "Hooks.h"
+#include "Config.h"
 #include "TravelDialog.h"
 #include <cmath>
 
@@ -60,12 +61,12 @@ namespace MarkerSelectionOverride
         void LogQuestDestination(const RE::MapMenuMarker& marker, RE::TESObjectREFR* reference)
         {
             // Read-only diagnostics: distinguish a displayed exterior door from an outdoor target.
-            const auto* base = reference->GetBaseObject();
-            const auto* cell = reference->GetParentCell();
-            const auto* world = reference->GetWorldspace();
+            const auto* base    = reference->GetBaseObject();
+            const auto* cell    = reference->GetParentCell();
+            const auto* world   = reference->GetWorldspace();
             const auto position = reference->GetPosition();
-            const auto* name = reference->GetName();
-            SKSE::log::info(
+            const auto* name    = reference->GetName();
+            SKSE::log::debug(
                 "Quest destination: ref={:08X} name={} base={:08X} isDoor={} cell={:08X} interior={} world={:08X} markerDoor={} xyz=({:.2f}, {:.2f}, {:.2f}).",
                 reference->GetFormID(), name ? name : "", base ? base->GetFormID() : 0,
                 base && base->Is(RE::FormType::Door), cell ? cell->GetFormID() : 0,
@@ -77,7 +78,7 @@ namespace MarkerSelectionOverride
             if (!teleport || !teleport->teleportData) { return; }
             const auto& data = *teleport->teleportData;
             const auto linked = data.linkedDoor.get();
-            SKSE::log::info(
+            SKSE::log::debug(
                 "Door teleport: linkedHandle={:08X} linkedRef={:08X} arrival=({:.2f}, {:.2f}, {:.2f}) rotation=({:.3f}, {:.3f}, {:.3f}).",
                 data.linkedDoor.native_handle(), linked ? linked->GetFormID() : 0,
                 data.position.x, data.position.y, data.position.z,
@@ -89,14 +90,14 @@ namespace MarkerSelectionOverride
             if (!linked) { return; }
             const auto* linkedCell = linked->GetParentCell();
             const auto* counterpart = linked->extraList.GetByType<RE::ExtraTeleport>();
-            SKSE::log::info(
+            SKSE::log::debug(
                 "Linked door: ref={:08X} cell={:08X} interior={} hasTeleport={}.",
                 linked->GetFormID(), linkedCell ? linkedCell->GetFormID() : 0,
                 linkedCell && linkedCell->IsInteriorCell(), counterpart && counterpart->teleportData
             );
             if (counterpart && counterpart->teleportData) {
                 const auto& arrival = *counterpart->teleportData;
-                SKSE::log::info(
+                SKSE::log::debug(
                     "Linked door teleport: returnHandle={:08X} arrival=({:.2f}, {:.2f}, {:.2f}) rotation=({:.3f}, {:.3f}, {:.3f}).",
                     arrival.linkedDoor.native_handle(),
                     arrival.position.x, arrival.position.y, arrival.position.z,
@@ -153,8 +154,20 @@ namespace MarkerSelectionOverride
                 return;
             }
 
-            // Discovered locations retain their complete vanilla path.
+            // Discovered locations retain their complete vanilla path regardless of configuration.
             if (marker.type == regularMarkerType && IsDiscoveredMarker(marker)) {
+                originalSelection(args);
+                return;
+            }
+
+            // Disabled categories use the complete original selection function.
+            // Regular markers reaching this point are undiscovered.
+            // This happens before destination changes, cruise checks, or our dialog.
+            if (
+                (marker.type == customDestinationType && !Config::GetAllowCustomDestination()) ||
+                (marker.type == questMarkerType && !Config::GetAllowQuestMarkers()) ||
+                (marker.type == regularMarkerType && !Config::GetAllowUndiscoveredLocations())
+             ) {
                 originalSelection(args);
                 return;
             }
@@ -206,7 +219,7 @@ namespace MarkerSelectionOverride
                 return;
             }
 
-            if (marker.type == questMarkerType) {
+            if (marker.type == questMarkerType && spdlog::default_logger()->should_log(spdlog::level::debug)) {
                 LogQuestDestination(marker, destination.get());
             }
 

@@ -55,7 +55,7 @@ namespace
 
         void Run(std::uint8_t button) override
         {
-            SKSE::log::info("Travel confirmation response: {} (Yes=1, No=2, Place Marker=3).", button);
+            SKSE::log::debug("Travel confirmation response: {} (Yes=1, No=2, Place Marker=3).", button);
             Native::RunTravelConfirmation(this, button);
         }
 

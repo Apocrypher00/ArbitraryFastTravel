@@ -1,11 +1,15 @@
 #include "PCH.h"
 #include "MarkerSelectionOverride.h"
 #include "Hooks.h"
+#include "Config.h"
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
     // Save the interfaces supplied through the skse pointer, and initialize CommonLib's SKSE API and plugin logger.
     SKSE::Init(skse);
+
+    // Read settings and apply the log level before installing feature hooks.
+    Config::Load();
 
     if (!Hooks::Initialize()) { return false; }
 
