@@ -10,6 +10,8 @@ namespace MarkerSelectionOverride
     namespace
     {
         // CommonLib exposes the marker type as a number rather than a named enum.
+        constexpr std::uint32_t regularMarkerType = 0;
+        constexpr std::uint32_t questMarkerType = 1;
         constexpr std::uint32_t customDestinationType = 2;
 
         namespace Native
@@ -55,6 +57,62 @@ namespace MarkerSelectionOverride
             }
         }
 
+        void LogQuestDestination(const RE::MapMenuMarker& marker, RE::TESObjectREFR* reference)
+        {
+            // Read-only diagnostics: distinguish a displayed exterior door from an outdoor target.
+            const auto* base = reference->GetBaseObject();
+            const auto* cell = reference->GetParentCell();
+            const auto* world = reference->GetWorldspace();
+            const auto position = reference->GetPosition();
+            const auto* name = reference->GetName();
+            SKSE::log::info(
+                "Quest destination: ref={:08X} name={} base={:08X} isDoor={} cell={:08X} interior={} world={:08X} markerDoor={} xyz=({:.2f}, {:.2f}, {:.2f}).",
+                reference->GetFormID(), name ? name : "", base ? base->GetFormID() : 0,
+                base && base->Is(RE::FormType::Door), cell ? cell->GetFormID() : 0,
+                cell && cell->IsInteriorCell(), world ? world->GetFormID() : 0, marker.door,
+                position.x, position.y, position.z
+            );
+
+            const auto* teleport = reference->extraList.GetByType<RE::ExtraTeleport>();
+            if (!teleport || !teleport->teleportData) { return; }
+            const auto& data = *teleport->teleportData;
+            const auto linked = data.linkedDoor.get();
+            SKSE::log::info(
+                "Door teleport: linkedHandle={:08X} linkedRef={:08X} arrival=({:.2f}, {:.2f}, {:.2f}) rotation=({:.3f}, {:.3f}, {:.3f}).",
+                data.linkedDoor.native_handle(), linked ? linked->GetFormID() : 0,
+                data.position.x, data.position.y, data.position.z,
+                data.rotation.x, data.rotation.y, data.rotation.z
+            );
+
+            // The selected door's arrival may point indoors. Inspect its counterpart as well.
+            // Lookup holds existing references; this does not force cells to load or move anything.
+            if (!linked) { return; }
+            const auto* linkedCell = linked->GetParentCell();
+            const auto* counterpart = linked->extraList.GetByType<RE::ExtraTeleport>();
+            SKSE::log::info(
+                "Linked door: ref={:08X} cell={:08X} interior={} hasTeleport={}.",
+                linked->GetFormID(), linkedCell ? linkedCell->GetFormID() : 0,
+                linkedCell && linkedCell->IsInteriorCell(), counterpart && counterpart->teleportData
+            );
+            if (counterpart && counterpart->teleportData) {
+                const auto& arrival = *counterpart->teleportData;
+                SKSE::log::info(
+                    "Linked door teleport: returnHandle={:08X} arrival=({:.2f}, {:.2f}, {:.2f}) rotation=({:.3f}, {:.3f}, {:.3f}).",
+                    arrival.linkedDoor.native_handle(),
+                    arrival.position.x, arrival.position.y, arrival.position.z,
+                    arrival.rotation.x, arrival.rotation.y, arrival.rotation.z
+                );
+            }
+        }
+
+        bool IsDiscoveredMarker(const RE::MapMenuMarker& marker)
+        {
+            // Use CommonLib's named native eligibility flag without changing marker data.
+            const auto reference = RE::TESObjectREFR::LookupByHandle(marker.ref);
+            const auto* extra = reference ? reference->extraList.GetByType<RE::ExtraMapMarker>() : nullptr;
+            return extra && extra->mapData && extra->mapData->flags.any(RE::MapMarkerData::Flag::kCanTravelTo);
+        }
+
         // MarkerClick is registered with Scaleform, Skyrim's menu system.
         // Its single argument contains the selected marker index. The function
         // pointer below describes that callback signature, not a new travel API.
@@ -65,7 +123,7 @@ namespace MarkerSelectionOverride
 
         // Whole-function detour boundary.
         // We do not patch individual instructions or temporarily change marker types.
-        // Only type 2 takes our custom path.
+        // Expand regular undiscovered, quest, and custom destination eligibility.
         // Vanilla mount cruising retains the entire original selection path.
         void Selection(const RE::FxDelegateArgs& args)
         {
@@ -89,19 +147,34 @@ namespace MarkerSelectionOverride
             }
             const auto& marker = data->mapMarkers[static_cast<std::size_t>(index)];
 
-            // Regular, quest, and player markers retain their original behavior, including discovery checks.
-            // Calling the trampoline avoids recursion into this detour.
-            // We replace neither their dialogs nor their checks.
-            if (marker.type != customDestinationType) {
+            // Leave player markers and any unknown categories entirely native.
+            if (marker.type != regularMarkerType && marker.type != questMarkerType && marker.type != customDestinationType) {
                 originalSelection(args);
                 return;
+            }
+
+            // Discovered locations retain their complete vanilla path.
+            if (marker.type == regularMarkerType && IsDiscoveredMarker(marker)) {
+                originalSelection(args);
+                return;
+            }
+
+            // Vanilla resolves quest selections to a regular marker with the same handle.
+            // Preserve that behavior when the matching location is already travelable.
+            if (marker.type == questMarkerType) {
+                for (const auto& candidate : data->mapMarkers) {
+                    if (candidate.type == regularMarkerType && candidate.ref == marker.ref && IsDiscoveredMarker(candidate)) {
+                        originalSelection(args);
+                        return;
+                    }
+                }
             }
 
             // Preserve vanilla cruising before changing the selected destination or opening our dialog.
             // Mount state alone is insufficient: cruise must also be enabled.
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (player && Native::HasCruiseMountState(player) && Native::IsCruiseEnabled()) {
-                SKSE::log::info("Delegated custom destination selection to native mount cruising.");
+                SKSE::log::info("Delegated marker selection to native mount cruising.");
                 originalSelection(args);
                 return;
             }
@@ -117,25 +190,28 @@ namespace MarkerSelectionOverride
             // Do not create a fake marker or change the reference's position.
             const auto destination = RE::TESObjectREFR::LookupByHandle(marker.ref);
 
-            // Preserve the original custom branch's use of the player's world for the border check.
-            // WMS remote-map tests passed this behavior; do not substitute a different world merely on that account.
+            // Preserve the original custom destination border check.
+            // Quest handles already represent the map-relative target chosen by native routing.
             auto* world = player ? player->GetWorldspace() : nullptr;
-            if (!player || !destination || !world) {
-                SKSE::log::warn("Custom destination has no resolved reference or player worldspace.");
+            if (!player || !destination || (marker.type == customDestinationType && !world)) {
+                SKSE::log::warn("Selected destination has no resolved reference or required player worldspace.");
                 return;
             }
 
             // Preserve the native border and player restriction checks.
             const auto position = destination->GetPosition();
-            if (!Native::IsPositionWithinBorders(world, &position) || !Native::CanFastTravel(player, false)) {
+            if ((marker.type == customDestinationType && !Native::IsPositionWithinBorders(world, &position)) ||
+                !Native::CanFastTravel(player, false)) {
                 SKSE::log::info("Native checks rejected custom travel.");
                 return;
             }
 
-            // This is the intentional eligibility change:
-            // type 2 can reach the native dialog without cruise mode or ordinary map-marker discovery data.
-            // We retain the checks above, then publish the destination handle.
-            // We never force the later travel-type decision or the mount predicates.
+            if (marker.type == questMarkerType) {
+                LogQuestDestination(marker, destination.get());
+            }
+
+            // Allow the selected map reference without the ordinary discovery requirement.
+            // All travel execution and mount decisions remain native.
             selectedDestination = destination->GetHandle();
 
             // If no dialog is queued, discard the handle.
@@ -145,8 +221,8 @@ namespace MarkerSelectionOverride
                 return;
             }
             SKSE::log::info(
-                "Opened native custom travel confirmation: handle={:08X} form={:08X}.",
-                static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
+                "Opened expanded travel confirmation: type={} handle={:08X} form={:08X}.",
+                marker.type, static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
             );
         }
     }

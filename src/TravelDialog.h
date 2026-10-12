@@ -4,8 +4,8 @@
 
 namespace TravelDialog
 {
-    // Retained for a future fully modal dialog. Neither is called by the current
-    // Yes/No flow. If suspension is enabled, cancellation must restore input.
+    // Show suspends map controls after queuing the dialog. Native cancellation
+    // restores them; RestoreMapInput is retained for explicit recovery if needed.
     // Pass a live, open MapMenu; these helpers do not own its lifetime.
     void SuspendMapInput(RE::MapMenu* menu);
     void RestoreMapInput(RE::MapMenu* menu);

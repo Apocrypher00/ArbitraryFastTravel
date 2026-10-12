@@ -19,6 +19,7 @@ namespace GameText
 {
     const char* Yes() { return ReadTextPointer(376286); }
     const char* No() { return ReadTextPointer(376289); }
+    const char* PlaceMarker() { return ReadTextPointer(377924); }
     const char* FastTravelPrompt() { return ReadTextPointer(377027); }
 
     const char* WithoutIDPrefix(const char* text)
