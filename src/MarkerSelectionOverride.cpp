@@ -1,11 +1,11 @@
 #include "PCH.h"
-#include "CustomTravel.h"
+#include "MarkerSelectionOverride.h"
 
 #include "Hooks.h"
 #include "TravelDialog.h"
 #include <cmath>
 
-namespace CustomTravel
+namespace MarkerSelectionOverride
 {
     namespace
     {
@@ -22,7 +22,7 @@ namespace CustomTravel
         // Only type 2 takes our custom path.
         // CURRENT LIMITATION: the cruise case also takes this path today.
         // Explicit delegation to vanilla for mountPredicate && cruiseEnabled is planned;
-        // it is not implemented in this comments-only patch.
+        // It is not implemented yet.
         void Selection(const RE::FxDelegateArgs& args)
         {
             // FxDelegateArgs exposes the originating handler, which is MapMenu for this registered callback.
@@ -97,8 +97,10 @@ namespace CustomTravel
                 selectedDestination.reset();
                 return;
             }
-            SKSE::log::info("Opened native custom travel confirmation: handle={:08X} form={:08X}.",
-                static_cast<std::uint32_t>(marker.ref), destination->GetFormID());
+            SKSE::log::info(
+                "Opened native custom travel confirmation: handle={:08X} form={:08X}.",
+                static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
+            );
         }
     }
 

@@ -1,5 +1,5 @@
 #include "PCH.h"
-#include "CustomTravel.h"
+#include "MarkerSelectionOverride.h"
 #include "Hooks.h"
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
@@ -12,7 +12,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     // Prepare the detour without activating it. Creation only resolves an
     // executable address and builds a trampoline; it does not access game forms.
     // Failures now reject plugin loading before we report successful startup.
-    if (!CustomTravel::CreateHook()) {
+    if (!MarkerSelectionOverride::CreateHook()) {
         Hooks::Reset();
         return false;
     }

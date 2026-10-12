@@ -3,7 +3,6 @@
 #include "GameText.h"
 
 #include <cstdio>
-#include <cstring>
 #include <memory>
 #include <vector>
 
@@ -40,6 +39,19 @@ namespace
     // A compile-time size check catches accidental changes to this layout.
     // It is not independent proof of compatibility with other runtimes.
     static_assert(sizeof(TravelConfirmation) == 0x20);
+
+    bool FormatPrompt(const char* prompt, const char* label, RE::BSString& message)
+    {
+        // Format the engine prompt using its %s placeholder.
+        // Measure first, then include space for the terminating zero character.
+        const int length = std::snprintf(nullptr, 0, prompt, label);
+        if (length < 0) { return false; }
+
+        std::vector<char> text(static_cast<std::size_t>(length) + 1);
+        std::snprintf(text.data(), text.size(), prompt, label);
+        message = text.data();
+        return true;
+    }
 
 }  // namespace
 
@@ -82,19 +94,12 @@ namespace TravelDialog
             return false;
         }
 
-        // Mirror the native string helper: skip a 13-byte ID prefix when present.
-        // This assumes the engine-created label has native format.
-        // The helper strips a prefix; it does not perform a translation lookup.
-        if (std::strncmp(label, "<ID=", 4) == 0) { label += 13; }
+        // Keep engine label metadata out of the visible confirmation text.
+        label = GameText::WithoutIDPrefix(label);
 
-        // Format the engine prompt using its %s placeholder.
-        // First measure the required length, then allocate space including the terminating zero character.
-        // BSString owns the resulting message text.
-        const int length = std::snprintf(nullptr, 0, prompt, label);
-        if (length < 0) { return false; }
-        std::vector<char> text(static_cast<std::size_t>(length) + 1);
-        std::snprintf(text.data(), text.size(), prompt, label);
-        RE::BSString message(text.data());
+        // BSString owns the formatted prompt after the temporary buffer is released.
+        RE::BSString message;
+        if (!FormatPrompt(prompt, label, message)) { return false; }
 
         // Native button ordering matters: Create adds an offset of 1, so indices 0/1 reach Run as Yes=1, No=2.
         RE::BSTArray<RE::BSString> buttons;

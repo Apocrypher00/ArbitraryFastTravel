@@ -33,7 +33,7 @@ include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES 1.6.1170.0
-    SOURCES src/plugin.cpp src/Hooks.cpp src/CustomTravel.cpp src/TravelDialog.cpp src/GameText.cpp
+    SOURCES src/plugin.cpp src/Hooks.cpp src/MarkerSelectionOverride.cpp src/TravelDialog.cpp src/GameText.cpp
 )
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /utf-8)
