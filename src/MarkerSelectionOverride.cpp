@@ -9,6 +9,33 @@ namespace MarkerSelectionOverride
 {
     namespace
     {
+        // CommonLib exposes the marker type as a number rather than a named enum.
+        constexpr std::uint32_t customDestinationType = 2;
+
+        namespace Native
+        {
+            // Keep bindings beside their owning feature and resolve them on first use.
+            // These helpers call the engine; they do not reproduce its checks.
+            // AE20558 checks destination XY against border regions when enabled by the world.
+            // It does not establish terrain height.
+            bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
+            {
+                using Function = bool (*)(RE::TESWorldSpace*, const RE::NiPoint3*);
+                static REL::Relocation<Function> function{REL::ID(20558)};
+                return function(world, position);
+            }
+
+            // AE40444 applies player restrictions such as combat, weight, and disabled travel.
+            // Vanilla MarkerClick passes false and native refusal messages are shown.
+            // The mode argument's full semantics are not named; this is not a height check.
+            bool CanFastTravel(RE::PlayerCharacter* player, bool mode)
+            {
+                using Function = bool (*)(RE::PlayerCharacter*, bool);
+                static REL::Relocation<Function> function{REL::ID(40444)};
+                return function(player, mode);
+            }
+        }
+
         // MarkerClick is registered with Scaleform, Skyrim's menu system.
         // Its single argument contains the selected marker index. The function
         // pointer below describes that callback signature, not a new travel API.
@@ -33,6 +60,7 @@ namespace MarkerSelectionOverride
                 return;
             }
             auto* data = menu->GetRuntimeData2();
+
             // Scaleform represents numbers as doubles. Ensure this is a finite,
             // nonnegative integer within the array before converting to size_t.
             // These checks are defensive glue, not fast-travel eligibility rules.
@@ -43,10 +71,11 @@ namespace MarkerSelectionOverride
                 return;
             }
             const auto& marker = data->mapMarkers[static_cast<std::size_t>(index)];
-            // Regular, quest, and player markers retain their original behavior,
-            // including discovery checks. Calling the trampoline avoids recursion
-            // into this detour. We replace neither their dialogs nor their checks.
-            if (marker.type != 2) {
+
+            // Regular, quest, and player markers retain their original behavior, including discovery checks.
+            // Calling the trampoline avoids recursion into this detour.
+            // We replace neither their dialogs nor their checks.
+            if (marker.type != customDestinationType) {
                 originalSelection(args);
                 return;
             }
@@ -57,42 +86,35 @@ namespace MarkerSelectionOverride
             auto& selectedDestination = menu->GetRuntimeData()->mapMarker;
             selectedDestination.reset();
             auto* player = RE::PlayerCharacter::GetSingleton();
+
             // Resolve the existing marker's engine handle to its real reference.
             // The returned NiPointer keeps that reference alive during this call.
             // Do not create a fake marker or change the reference's position.
             const auto destination = RE::TESObjectREFR::LookupByHandle(marker.ref);
-            // Preserve the original custom branch's use of the player's world
-            // for the border check. WMS remote-map tests passed this behavior;
-            // do not substitute a different world merely on that account.
+
+            // Preserve the original custom branch's use of the player's world for the border check.
+            // WMS remote-map tests passed this behavior; do not substitute a different world merely on that account.
             auto* world = player ? player->GetWorldspace() : nullptr;
             if (!player || !destination || !world) {
                 SKSE::log::warn("Custom destination has no resolved reference or player worldspace.");
                 return;
             }
 
-            // Native checks, not copied eligibility logic:
-            // AE20558: permitted XY inside border regions, when enabled by world.
-            // AE40444: player restrictions (combat, weight, disabled travel, etc.).
-            // The second argument remains false, as in vanilla MarkerClick, so
-            // native refusal messages are shown. Its full semantics are not named.
-            // Neither check establishes terrain height; placement/travel handles it.
-            using BordersFn = bool (*)(RE::TESWorldSpace*, const RE::NiPoint3*);
-            using RestrictionsFn = bool (*)(RE::PlayerCharacter*, bool);
-            static REL::Relocation<BordersFn> withinBorders{REL::ID(20558)};
-            static REL::Relocation<RestrictionsFn> canTravel{REL::ID(40444)};
+            // Preserve the native border and player restriction checks.
             const auto position = destination->GetPosition();
-            if (!withinBorders(world, &position) || !canTravel(player, false)) {
+            if (!Native::IsPositionWithinBorders(world, &position) || !Native::CanFastTravel(player, false)) {
                 SKSE::log::info("Native checks rejected custom travel.");
                 return;
             }
 
-            // This is the intentional eligibility change: type 2 can reach the
-            // native dialog without cruise mode or ordinary map-marker discovery
-            // data. We retain the checks above, then publish the destination handle.
+            // This is the intentional eligibility change:
+            // type 2 can reach the native dialog without cruise mode or ordinary map-marker discovery data.
+            // We retain the checks above, then publish the destination handle.
             // We never force the later travel-type decision or the mount predicates.
             selectedDestination = destination->GetHandle();
-            // If no dialog is queued, discard the handle. Input has not been
-            // suspended, so there is no callback-dependent recovery to perform.
+
+            // If no dialog is queued, discard the handle.
+            // Input has not been suspended, so there is no callback-dependent recovery to perform.
             if (!TravelDialog::Show(menu, marker)) {
                 selectedDestination.reset();
                 return;
@@ -106,8 +128,8 @@ namespace MarkerSelectionOverride
 
     bool CreateHook()
     {
-        // This feature owns the engine target and function signature. Creation
-        // prepares the original trampoline but does not yet activate the detour.
+        // This feature owns the engine target and function signature.
+        // Creation prepares the original trampoline but does not yet activate the detour.
         // plugin.cpp enables the prepared hooks, or resets them if setup fails.
         return Hooks::Create("custom destination MarkerClick", REL::ID(53095), &Selection, originalSelection);
     }
