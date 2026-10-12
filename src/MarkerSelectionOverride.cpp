@@ -16,6 +16,25 @@ namespace MarkerSelectionOverride
         {
             // Keep bindings beside their owning feature and resolve them on first use.
             // These helpers call the engine; they do not reproduce its checks.
+            // AE37901 is vanilla's mount-state predicate for cruise selection.
+            // It checks the current mount and a process flag; the exact flag meaning is unresolved.
+            // Reuse the predicate instead of treating every mounted player as cruising.
+            bool HasCruiseMountState(RE::PlayerCharacter* player)
+            {
+                using Function = bool (*)(RE::PlayerCharacter*);
+                static REL::Relocation<Function> function{REL::ID(37901)};
+                return function(player);
+            }
+
+            // AE40728 reads the cruise setting used by vanilla MarkerClick.
+            // Enabled/disabled dragon tests established its role in that combined condition.
+            bool IsCruiseEnabled()
+            {
+                using Function = bool (*)();
+                static REL::Relocation<Function> function{REL::ID(40728)};
+                return function();
+            }
+
             // AE20558 checks destination XY against border regions when enabled by the world.
             // It does not establish terrain height.
             bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
@@ -47,9 +66,7 @@ namespace MarkerSelectionOverride
         // Whole-function detour boundary.
         // We do not patch individual instructions or temporarily change marker types.
         // Only type 2 takes our custom path.
-        // CURRENT LIMITATION: the cruise case also takes this path today.
-        // Explicit delegation to vanilla for mountPredicate && cruiseEnabled is planned;
-        // It is not implemented yet.
+        // Vanilla mount cruising retains the entire original selection path.
         void Selection(const RE::FxDelegateArgs& args)
         {
             // FxDelegateArgs exposes the originating handler, which is MapMenu for this registered callback.
@@ -80,12 +97,20 @@ namespace MarkerSelectionOverride
                 return;
             }
 
+            // Preserve vanilla cruising before changing the selected destination or opening our dialog.
+            // Mount state alone is insufficient: cruise must also be enabled.
+            auto* player = RE::PlayerCharacter::GetSingleton();
+            if (player && Native::HasCruiseMountState(player) && Native::IsCruiseEnabled()) {
+                SKSE::log::info("Delegated custom destination selection to native mount cruising.");
+                originalSelection(args);
+                return;
+            }
+
             // Vanilla clears MapMenu.mapMarker before processing a selection.
             // This is the handle the native confirmation/travel code later reads;
             // it is not the player's persistent custom-marker field.
             auto& selectedDestination = menu->GetRuntimeData()->mapMarker;
             selectedDestination.reset();
-            auto* player = RE::PlayerCharacter::GetSingleton();
 
             // Resolve the existing marker's engine handle to its real reference.
             // The returned NiPointer keeps that reference alive during this call.
