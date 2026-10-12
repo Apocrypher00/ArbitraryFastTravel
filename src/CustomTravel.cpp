@@ -104,14 +104,6 @@ namespace CustomTravel
 
     bool CreateHook()
     {
-        // REVIEW: this runtime guard overlaps the SKSE compatibility metadata generated from CMake's COMPATIBLE_RUNTIMES.
-        // WMS uses that metadata and verified per-runtime mappings.
-        // Consider removing redundant enforcement in a separate behavior patch; this patch intentionally preserves it.
-        // Address Library availability alone does not prove callback layout/ABI.
-        if (REL::Module::get().version() != SKSE::RUNTIME_SSE_1_6_1170) {
-            SKSE::log::error("Custom travel supports only the verified 1.6.1170 runtime.");
-            return false;
-        }
         // This feature owns the engine target and function signature. Creation
         // prepares the original trampoline but does not yet activate the detour.
         // plugin.cpp enables the prepared hooks, or resets them if setup fails.

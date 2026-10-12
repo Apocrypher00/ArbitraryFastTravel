@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(ArbitraryFastTravel VERSION 0.1.0 LANGUAGES CXX)
+
+# Keep the package manifest aligned with the version used for plugin metadata
+# and release archive names.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg.json" vcpkgManifest)
+string(JSON vcpkgVersion GET "${vcpkgManifest}" "version-string")
+if(NOT "${vcpkgVersion}" STREQUAL "${PROJECT_VERSION}")
+    message(FATAL_ERROR
+        "Project version ${PROJECT_VERSION} does not match vcpkg manifest version ${vcpkgVersion}.")
+endif()
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -18,7 +28,8 @@ FetchContent_Declare(CommonLibSSE
 FetchContent_MakeAvailable(CommonLibSSE)
 include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
 
-# Only the research baseline is advertised until travel hooks are validated.
+# CommonLib generates the SKSE plugin metadata from this runtime list.
+# Advertise only 1.6.1170, where the native callback layout and hooks were verified.
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES 1.6.1170.0
