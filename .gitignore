@@ -1,0 +1,49 @@
+/vcpkg_installed/
+
+# CMake and build output
+/build/
+/out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Visual Studio
+/.vs/
+*.user
+*.suo
+
+# Compiled artifacts
+*.dll
+*.lib
+*.exp
+*.pdb
+*.obj
+*.ilk
+
+# Runtime and diagnostic files
+*.log
+*.dmp
+
+# Local editor files
+.vscode/
+.idea/
+
+# Operating-system files
+Thumbs.db
+.DS_Store
+
+# CMake fetches the pinned dependency; this local copy is not project source.
+/extern/
+/CMakeUserPresets.json
+
+# Local research and agent instructions are kept outside the public source.
+/research/
+/AGENTS.md
+*.bin
+*.exe
+*.zip
+*.patch
