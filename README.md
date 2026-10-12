@@ -1,6 +1,6 @@
 # Arbitrary Fast Travel
 
-SKSE plugin in development to allow native fast travel to the existing custom destination marker. The current source is a diagnostic scaffold that logs map opening and closing. Travel behavior is not implemented yet.
+SKSE plugin in development to allow native fast travel to the existing custom destination marker. The current source is an experimental custom-marker travel prototype using the native confirmation and travel path. It has not yet been tested in game.
 
 ## Build and package
 
@@ -10,7 +10,7 @@ CommonLibSSE-NG is fetched by CMake at pinned commit 8b032fa992750d654d6d38a3373
 
 Configure x64-Release, then build x64-Release-Package to generate an installable ZIP. Install through a separate MO2 test mod and restart Skyrim after DLL changes.
 
-The scaffold currently advertises Steam Skyrim 1.6.1170 only. Full clean-build validation and the travel prototype remain pending. End-user runtime requirements are matching SKSE and Address Library.
+The prototype currently advertises Steam Skyrim 1.6.1170 only. Full clean-build and in-game validation remain pending. End-user runtime requirements are matching SKSE and Address Library.
 
 ## Intended behavior
 
@@ -19,3 +19,5 @@ Use the existing custom destination reference, native confirmation dialog, and e
 ## License
 
 Original project source is provided under the Unlicense; see LICENSE. Dependencies retain their own licenses. The packaging script includes notices for the linked dependencies; the project's Unlicense does not replace those terms.
+
+Exact dependency revisions and release-source guidance are recorded in SOURCES.md.

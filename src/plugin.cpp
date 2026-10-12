@@ -1,4 +1,5 @@
 #include "PCH.h"
+#include "CustomTravel.h"
 
 namespace
 {
@@ -19,6 +20,8 @@ namespace
     void OnSKSEMessage(SKSE::MessagingInterface::Message* message)
     {
         if (!message || message->type != SKSE::MessagingInterface::kDataLoaded) { return; }
+
+        if (!CustomTravel::Install()) { return; }
 
         auto* ui = RE::UI::GetSingleton();
         if (!ui) {
@@ -44,6 +47,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
         SKSE::log::error("Could not register the SKSE message listener.");
         return false;
     }
-    SKSE::log::info("ArbitraryFastTravel loaded; diagnostic scaffold only.");
+    SKSE::log::info("ArbitraryFastTravel loaded; custom destination travel prototype.");
     return true;
 }

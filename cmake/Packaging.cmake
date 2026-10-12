@@ -21,7 +21,9 @@ install_license("${commonlibsse_SOURCE_DIR}/COPYING" "CommonLibSSE-NG-GPL-3.0")
 install_license("${commonlibsse_SOURCE_DIR}/EXCEPTIONS.md" "CommonLibSSE-NG-Exceptions")
 
 set(vcpkgShareDirectory "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share")
-foreach(dependency directxmath directxtk fmt nlohmann-json rapidcsv spdlog toml11 xbyak)
+install_license("${CMAKE_SOURCE_DIR}/LICENSE" "ArbitraryFastTravel")
+
+foreach(dependency minhook directxmath directxtk fmt nlohmann-json rapidcsv spdlog toml11 xbyak)
     install_license("${vcpkgShareDirectory}/${dependency}/copyright" "${dependency}")
 endforeach()
 

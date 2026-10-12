@@ -22,9 +22,12 @@ include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES 1.6.1170.0
-    SOURCES src/plugin.cpp
+    SOURCES src/plugin.cpp src/CustomTravel.cpp
 )
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /utf-8)
+
+find_package(minhook CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE minhook::minhook)
 
 include(cmake/Packaging.cmake)
