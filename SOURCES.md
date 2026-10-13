@@ -1,6 +1,6 @@
 # Release sources
 
-No published releases yet. The current development baseline uses:
+No published releases yet. The 0.1.0 release candidate uses:
 
 | Component | Revision |
 | --- | --- |

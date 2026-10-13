@@ -15,7 +15,8 @@ namespace MarkerSelectionOverride
         constexpr std::uint32_t questMarkerType = 1;
         constexpr std::uint32_t customDestinationType = 2;
 
-        // Verified 1.6.1170 display category. CommonLib's later icon values differ from this executable.
+        // Quest-door display category verified in Skyrim 1.6.1170; CommonLib agrees on this value.
+        // Verify this value before adding support for another runtime.
         constexpr std::uint32_t doorQuestDisplayType = 0x3F;
 
         namespace Native
