@@ -15,8 +15,8 @@ namespace MarkerSelectionOverride
         constexpr std::uint32_t questMarkerType = 1;
         constexpr std::uint32_t customDestinationType = 2;
 
-        // Quest-door display category verified in Skyrim 1.6.1170; CommonLib agrees on this value.
-        // Verify this value before adding support for another runtime.
+        // Quest-door display category verified in SE 1.5.97 and the supported AE runtimes.
+        // CommonLib agrees on this value.
         constexpr std::uint32_t doorQuestDisplayType = 0x3F;
 
         namespace Native
@@ -24,51 +24,51 @@ namespace MarkerSelectionOverride
             // Keep bindings beside their owning feature and resolve them on first use.
             // These helpers call the engine; they do not reproduce its checks.
 
-            // AE53082 selects the native display category from a map-marker record.
+            // SE52190/AE53082 selects the native display category from a map-marker record.
             // Quest markers return 0x3F for teleport destinations or the current-location routing fallback.
             // Direct quest variants return 0x3E or 0x40. This classifies routing, not the objective's cell.
             std::uint32_t GetDisplayType(const RE::MapMenuMarker& marker)
             {
                 using Function = std::uint32_t (*)(const RE::MapMenuMarker*);
-                static REL::Relocation<Function> function{REL::ID(53082)};
+                static REL::Relocation<Function> function{REL::RelocationID(52190, 53082)};
                 return function(&marker);
             }
 
-            // AE37901 is vanilla's mount-state predicate for cruise selection.
+            // SE36877/AE37901 is vanilla's mount-state predicate for cruise selection.
             // It checks the current mount and a process flag; the exact flag meaning is unresolved.
             // Reuse the predicate instead of treating every mounted player as cruising.
             bool HasCruiseMountState(RE::PlayerCharacter* player)
             {
                 using Function = bool (*)(RE::PlayerCharacter*);
-                static REL::Relocation<Function> function{REL::ID(37901)};
+                static REL::Relocation<Function> function{REL::RelocationID(36877, 37901)};
                 return function(player);
             }
 
-            // AE40728 reads the cruise setting used by vanilla MarkerClick.
+            // SE39641/AE40728 reads the cruise setting used by vanilla MarkerClick.
             // Enabled/disabled dragon tests established its role in that combined condition.
             bool IsCruiseEnabled()
             {
                 using Function = bool (*)();
-                static REL::Relocation<Function> function{REL::ID(40728)};
+                static REL::Relocation<Function> function{REL::RelocationID(39641, 40728)};
                 return function();
             }
 
-            // AE20558 checks destination XY against border regions when enabled by the world.
+            // SE20109/AE20558 checks destination XY against border regions when enabled by the world.
             // It does not establish terrain height.
             bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
             {
                 using Function = bool (*)(RE::TESWorldSpace*, const RE::NiPoint3*);
-                static REL::Relocation<Function> function{REL::ID(20558)};
+                static REL::Relocation<Function> function{REL::RelocationID(20109, 20558)};
                 return function(world, position);
             }
 
-            // AE40444 applies player restrictions such as combat, weight, and disabled travel.
+            // SE39372/AE40444 applies player restrictions such as combat, weight, and disabled travel.
             // Vanilla MarkerClick passes false and native refusal messages are shown.
             // The mode argument's full semantics are not named; this is not a height check.
             bool CanFastTravel(RE::PlayerCharacter* player, bool mode)
             {
                 using Function = bool (*)(RE::PlayerCharacter*, bool);
-                static REL::Relocation<Function> function{REL::ID(40444)};
+                static REL::Relocation<Function> function{REL::RelocationID(39372, 40444)};
                 return function(player, mode);
             }
         }
@@ -283,6 +283,6 @@ namespace MarkerSelectionOverride
         // This feature owns the engine target and function signature.
         // Creation prepares the original trampoline but does not yet activate the detour.
         // plugin.cpp enables the prepared hooks, or resets them if setup fails.
-        return Hooks::Create("expanded travel MarkerClick", REL::ID(53095), &Selection, originalSelection);
+        return Hooks::Create("expanded travel MarkerClick", REL::RelocationID(52208, 53095), &Selection, originalSelection);
     }
 }

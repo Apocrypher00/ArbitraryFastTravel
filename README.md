@@ -6,8 +6,8 @@ Optional settings also enable travel to undiscovered locations and quest targets
 
 ## Requirements and installation
 
-- Skyrim Special Edition, Steam runtimes **1.6.318, 1.6.323, 1.6.342, 1.6.353, 1.6.629, 1.6.640, 1.6.1130, 1.6.1170, 1.7.99, or 1.7.104**.
-- 1.5.97 and VR are not currently supported. 1.6.317 is excluded because it cannot load SKSE plugins.
+- Skyrim Special Edition, Steam runtimes **1.5.97, 1.6.318, 1.6.323, 1.6.342, 1.6.353, 1.6.629, 1.6.640, 1.6.1130, 1.6.1170, 1.7.99, or 1.7.104**.
+- VR is not currently supported. 1.6.317 is excluded because it cannot load SKSE plugins.
 - SKSE64 matching that runtime.
 - Address Library for SKSE Plugins with the database matching your runtime.
 
@@ -41,7 +41,7 @@ The two quest options distinguish the game's door-routed and direct marker categ
 
 ## Tested behavior
 
-All ten supported runtimes passed the same smoke test with Debug logging and all behavior options enabled: selection of discovered and undiscovered locations, custom destinations, door-routed and direct quest targets, cancellation of the expanded dialogs, and custom fast travel outside Raven Rock on Solstheim. Quest and undiscovered travel were not completed separately on every runtime.
+All eleven supported runtimes passed the same smoke test with Debug logging and all behavior options enabled: selection of discovered and undiscovered locations, custom destinations, door-routed and direct quest targets, cancellation of the expanded dialogs, and custom fast travel outside Raven Rock on Solstheim. Quest and undiscovered travel were not completed separately on every runtime.
 
 Broader development tests on 1.6.1170 covered custom destinations, undiscovered locations, outdoor quest targets, both quest category toggles, native cancellation and marker placement, input suspension/restoration, horse mounting, and dragon cruise enabled/disabled. Remote maps selected through WorldMapSelector also worked in the tested setup. These tests do not establish support for every worldspace or mod combination.
 

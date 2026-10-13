@@ -34,6 +34,7 @@ include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES
+        1.5.97.0
         1.6.318.0
         1.6.323.0
         1.6.342.0

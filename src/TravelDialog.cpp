@@ -21,26 +21,26 @@ namespace
     namespace Native
     {
         // Resolve each binding on first use, after SKSE/CommonLib initialization.
-        // AE53127 checks that MapMenu is open. Yes queues fade/map close and fast travel.
+        // SE52236/AE53127 checks that MapMenu is open. Yes queues fade/map close and fast travel.
         // Native No restores input; Place Marker restores input and uses the saved cursor.
         void RunTravelConfirmation(RE::IMessageBoxCallback* callback, std::uint8_t button)
         {
             using Function = void (*)(RE::IMessageBoxCallback*, std::uint8_t);
-            static REL::Relocation<Function> function{REL::ID(53127)};
+            static REL::Relocation<Function> function{REL::RelocationID(52236, 53127)};
             function(callback, button);
         }
 
-        // AE53100 registers or unregisters the selected map input handlers.
+        // SE52213/AE53100 registers or unregisters the selected map input handlers.
         // Disabling also clears the look handler state, matching vanilla's cleanup.
         void SetInputHandlersEnabled(RE::MapMenu* menu, bool enabled, std::uint32_t mask)
         {
             using Function = void (*)(RE::MapMenu*, bool, std::uint32_t);
-            static REL::Relocation<Function> function{REL::ID(53100)};
+            static REL::Relocation<Function> function{REL::RelocationID(52213, 53100)};
             function(menu, enabled, mask);
         }
     }
 
-    // Native button handling expects this verified 1.6.1170 callback layout.
+    // Native button handling expects this layout in SE 1.5.97 and the supported AE runtimes.
     // Retain the saved cursor for Place Marker and delegate all responses.
     class TravelConfirmation final : public RE::IMessageBoxCallback
     {
