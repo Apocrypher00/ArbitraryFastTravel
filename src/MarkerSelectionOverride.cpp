@@ -15,10 +15,24 @@ namespace MarkerSelectionOverride
         constexpr std::uint32_t questMarkerType = 1;
         constexpr std::uint32_t customDestinationType = 2;
 
+        // Verified 1.6.1170 display category. CommonLib's later icon values differ from this executable.
+        constexpr std::uint32_t doorQuestDisplayType = 0x3F;
+
         namespace Native
         {
             // Keep bindings beside their owning feature and resolve them on first use.
             // These helpers call the engine; they do not reproduce its checks.
+
+            // AE53082 selects the native display category from a map-marker record.
+            // Quest markers return 0x3F for teleport destinations or the current-location routing fallback.
+            // Direct quest variants return 0x3E or 0x40. This classifies routing, not the objective's cell.
+            std::uint32_t GetDisplayType(const RE::MapMenuMarker& marker)
+            {
+                using Function = std::uint32_t (*)(const RE::MapMenuMarker*);
+                static REL::Relocation<Function> function{REL::ID(53082)};
+                return function(&marker);
+            }
+
             // AE37901 is vanilla's mount-state predicate for cruise selection.
             // It checks the current mount and a process flag; the exact flag meaning is unresolved.
             // Reuse the predicate instead of treating every mounted player as cruising.
@@ -165,7 +179,7 @@ namespace MarkerSelectionOverride
             // This happens before destination changes, cruise checks, or our dialog.
             if (
                 (marker.type == customDestinationType && !Config::GetAllowCustomDestination()) ||
-                (marker.type == questMarkerType && !Config::GetAllowQuestMarkers()) ||
+                (marker.type == questMarkerType && !Config::GetAllowDirectQuestMarkers() && !Config::GetAllowDoorQuestMarkers()) ||
                 (marker.type == regularMarkerType && !Config::GetAllowUndiscoveredLocations())
              ) {
                 originalSelection(args);
@@ -192,16 +206,36 @@ namespace MarkerSelectionOverride
                 return;
             }
 
+            // Resolve the existing marker's engine handle to its real reference.
+            // The returned NiPointer keeps that reference alive during this call.
+            // Do not create a fake marker or change the reference's position.
+            const auto destination = RE::TESObjectREFR::LookupByHandle(marker.ref);
+
+            // Reuse the game's quest display classification before changing the selected destination.
+            // A disabled category defers to vanilla; neither the marker nor its reference is modified.
+            if (marker.type == questMarkerType) {
+                const auto displayType = Native::GetDisplayType(marker);
+                const bool doorRouted = displayType == doorQuestDisplayType;
+                const bool enabled = doorRouted ? Config::GetAllowDoorQuestMarkers() : Config::GetAllowDirectQuestMarkers();
+                SKSE::log::debug(
+                    "Quest travel category: displayType=0x{:02X} doorRouted={} enabled={} handle={:08X} ref={:08X}.",
+                    displayType, doorRouted, enabled, static_cast<std::uint32_t>(marker.ref),
+                    destination ? destination->GetFormID() : 0
+                );
+                if (!enabled || !destination) {
+                    originalSelection(args);
+                    return;
+                }
+            }
+
+            // TODO: use the linked door's exterior arrival point through native fast travel.
+            // Door travel currently uses the existing reference origin and can leave the player in collision.
+
             // Vanilla clears MapMenu.mapMarker before processing a selection.
             // This is the handle the native confirmation/travel code later reads;
             // it is not the player's persistent custom-marker field.
             auto& selectedDestination = menu->GetRuntimeData()->mapMarker;
             selectedDestination.reset();
-
-            // Resolve the existing marker's engine handle to its real reference.
-            // The returned NiPointer keeps that reference alive during this call.
-            // Do not create a fake marker or change the reference's position.
-            const auto destination = RE::TESObjectREFR::LookupByHandle(marker.ref);
 
             // Preserve the original custom destination border check.
             // Quest handles already represent the map-relative target chosen by native routing.

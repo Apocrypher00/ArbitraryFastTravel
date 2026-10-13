@@ -14,7 +14,8 @@ namespace Config
         // Read once at startup, following WMS's SimpleIni configuration pattern.
         auto logLevel = spdlog::level::info;
         bool allowCustomDestination = true;
-        bool allowQuestMarkers = false;
+        bool allowDirectQuestMarkers = false;
+        bool allowDoorQuestMarkers = false;
         bool allowUndiscoveredLocations = false;
 
         bool EqualsIgnoreCase(std::string_view left, std::string_view right)
@@ -61,7 +62,8 @@ namespace Config
         // Missing or invalid entries retain defaults, including when loading is retried.
         logLevel = spdlog::level::info;
         allowCustomDestination = true;
-        allowQuestMarkers = false;
+        allowDirectQuestMarkers = false;
+        allowDoorQuestMarkers = false;
         allowUndiscoveredLocations = false;
         ApplyLogLevel();
 
@@ -80,15 +82,17 @@ namespace Config
         ApplyLogLevel();
 
         ReadBool(ini, "AllowCustomDestination", allowCustomDestination);
-        ReadBool(ini, "AllowQuestMarkers", allowQuestMarkers);
+        ReadBool(ini, "AllowDirectQuestMarkers", allowDirectQuestMarkers);
+        ReadBool(ini, "AllowDoorQuestMarkers", allowDoorQuestMarkers);
         ReadBool(ini, "AllowUndiscoveredLocations", allowUndiscoveredLocations);
         SKSE::log::info(
-            "Travel configuration: custom={}, quest={}, undiscovered={}.",
-            allowCustomDestination, allowQuestMarkers, allowUndiscoveredLocations
+            "Travel configuration: custom={}, directQuest={}, doorQuest={}, undiscovered={}.",
+            allowCustomDestination, allowDirectQuestMarkers, allowDoorQuestMarkers, allowUndiscoveredLocations
         );
     }
 
     bool GetAllowCustomDestination() { return allowCustomDestination; }
-    bool GetAllowQuestMarkers() { return allowQuestMarkers; }
+    bool GetAllowDirectQuestMarkers() { return allowDirectQuestMarkers; }
+    bool GetAllowDoorQuestMarkers() { return allowDoorQuestMarkers; }
     bool GetAllowUndiscoveredLocations() { return allowUndiscoveredLocations; }
 }

@@ -4,6 +4,7 @@ namespace Config
 {
     void Load();
     bool GetAllowCustomDestination();
-    bool GetAllowQuestMarkers();
+    bool GetAllowDirectQuestMarkers();
+    bool GetAllowDoorQuestMarkers();
     bool GetAllowUndiscoveredLocations();
 }
