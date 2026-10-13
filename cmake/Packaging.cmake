@@ -26,6 +26,9 @@ install_license("${commonlibsse_SOURCE_DIR}/EXCEPTIONS.md" "CommonLibSSE-NG-Exce
 
 set(vcpkgShareDirectory "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share")
 install_license("${CMAKE_SOURCE_DIR}/LICENSE" "ArbitraryFastTravel")
+install_license("${CMAKE_SOURCE_DIR}/LICENSING.md" "ArbitraryFastTravel-Licensing")
+install_license("${CMAKE_SOURCE_DIR}/THIRD_PARTY_NOTICES.md" "ArbitraryFastTravel-ThirdPartyNotices")
+install_license("${CMAKE_SOURCE_DIR}/SOURCES.md" "ArbitraryFastTravel-Sources")
 
 foreach(dependency simpleini minhook directxmath directxtk fmt nlohmann-json rapidcsv spdlog toml11 xbyak)
     install_license("${vcpkgShareDirectory}/${dependency}/copyright" "${dependency}")

@@ -95,7 +95,13 @@ Configure `x64-Release`, then build `x64-Release-Package` to generate `out/build
 
 ## License and sources
 
-Original project source is provided under the Unlicense; see LICENSE. Dependencies retain their own licenses. Release ZIPs include their applicable notices. Exact dependency revisions and release-source guidance are recorded in SOURCES.md.
+Original project source is provided under the [Unlicense](LICENSE).
+The combined DLL is governed by GPL-3.0-or-later with CommonLibSSE-NG's exceptions;
+see [LICENSING.md](LICENSING.md) for the distinction.
+Other dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Release ZIPs include the complete license texts and these explanatory files beneath
+`SKSE/Plugins/ArbitraryFastTravel/Licenses/`.
+Exact dependency revisions and release-source guidance are recorded in [SOURCES.md](SOURCES.md).
 
 ## Dependencies and acknowledgements
 
