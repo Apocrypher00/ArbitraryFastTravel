@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(ArbitraryFastTravel VERSION 0.1.0 LANGUAGES CXX)
+project(
+    ArbitraryFastTravel
+    VERSION 1.0.0
+    LANGUAGES CXX
+)
 
 # Keep the package manifest aligned with the version used for plugin metadata
 # and release archive names.

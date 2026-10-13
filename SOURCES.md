@@ -1,17 +1,16 @@
 # Release sources
 
-No published releases yet. The 0.1.0 release candidate uses:
+Release source and dependency revisions:
 
-| Component | Revision |
-| --- | --- |
-| CommonLibSSE-NG 7.0.0 | `8b032fa992750d654d6d38a33731714d8b86be1f` |
-| vcpkg builtin baseline | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
+| Release tag | CommonLibSSE-NG | vcpkg builtin baseline |
+| --- | --- | --- |
+| [v1.0.0](https://github.com/Apocrypher00/ArbitraryFastTravel/tree/v1.0.0) | 7.0.0, `8b032fa992750d654d6d38a33731714d8b86be1f` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 
 Each release tag records the plugin source, the exact CommonLib commit in
 `CMakeLists.txt`, and the dependency manifest in `vcpkg.json`. CMake downloads
 the pinned CommonLib source; no Git submodule initialization is needed.
-Builds use `x64-windows-static-md`. Future published releases should add a
-table row identifying their tag and both dependency revisions.
+Builds use `x64-windows-static-md`. Each subsequent release should add a table row
+identifying its tag and both dependency revisions.
 
 Original plugin code is under the Unlicense. CommonLib 7.0.0 uses
 GPL-3.0-or-later with its Modding and Linking Exceptions; other dependencies
@@ -22,7 +21,7 @@ Historical tags retain the dependency revisions and terms recorded for that tag.
 
 Project source: [Apocrypher00/ArbitraryFastTravel](https://github.com/Apocrypher00/ArbitraryFastTravel).
 For a published release, use its matching release tag rather than the current master branch.
-No release tag is claimed for this development build.
+For version 1.0.0, use the `v1.0.0` tag listed above.
 
 Pinned CommonLib source:
 [8b032fa992750d654d6d38a33731714d8b86be1f](https://github.com/alandtse/CommonLibSSE-NG/tree/8b032fa992750d654d6d38a33731714d8b86be1f).
