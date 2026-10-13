@@ -29,11 +29,28 @@ FetchContent_MakeAvailable(CommonLibSSE)
 include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
 
 # CommonLib generates the SKSE plugin metadata from this runtime list.
-# Advertise only 1.6.1170, where the native callback layout and hooks were verified.
+# Native boundaries and callback layouts were compared across these runtimes.
+# These versions passed the shared map-selection and custom-travel smoke test.
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
-    COMPATIBLE_RUNTIMES 1.6.1170.0
-    SOURCES src/plugin.cpp src/Hooks.cpp src/MarkerSelectionOverride.cpp src/TravelDialog.cpp src/GameText.cpp src/Config.cpp
+    COMPATIBLE_RUNTIMES
+        1.6.318.0
+        1.6.323.0
+        1.6.342.0
+        1.6.353.0
+        1.6.629.0
+        1.6.640.0
+        1.6.1130.0
+        1.6.1170.0
+        1.7.99.0
+        1.7.104.0
+    SOURCES
+        src/plugin.cpp
+        src/Hooks.cpp
+        src/MarkerSelectionOverride.cpp
+        src/TravelDialog.cpp
+        src/GameText.cpp
+        src/Config.cpp
 )
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /utf-8)

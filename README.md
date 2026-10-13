@@ -6,9 +6,10 @@ Optional settings also enable travel to undiscovered locations and quest targets
 
 ## Requirements and installation
 
-- Skyrim Special Edition, Steam runtime **1.6.1170**. Other runtimes and VR are not currently supported.
+- Skyrim Special Edition, Steam runtimes **1.6.318, 1.6.323, 1.6.342, 1.6.353, 1.6.629, 1.6.640, 1.6.1130, 1.6.1170, 1.7.99, or 1.7.104**.
+- 1.5.97 and VR are not currently supported. 1.6.317 is excluded because it cannot load SKSE plugins.
 - SKSE64 matching that runtime.
-- Address Library for SKSE Plugins with the 1.6.1170 database.
+- Address Library for SKSE Plugins with the database matching your runtime.
 
 Install the release ZIP through MO2 or another mod manager and launch Skyrim through SKSE. The archive contains an SKSE plugin and configuration file; there is no ESP to enable. Restart Skyrim after replacing the DLL or changing settings.
 
@@ -28,6 +29,10 @@ Setting a behavior option to false delegates that category to the original game 
 
 Development users upgrading from the earlier `AllowQuestMarkers` option should replace it with the two quest settings above.
 
+## Destination placement
+
+Custom destinations use the point you selected, without checking for a clear landing spot. You are very likely to arrive inside a rock, building, or another placed object if one occupies that point. Some objects let you walk out; others can leave you stuck. Use the console command `tcl` to move clear, then run `tcl` again to restore collision.
+
 ## Known limitation: door quest targets
 
 Indoor objectives can appear on the map at an exterior transition door. With `AllowDoorQuestMarkers=true`, fast travel can place you inside the door's collision and leave you stuck. This option is disabled by default. You can use the console command `tcl` to move out, then run `tcl` again to restore collision. Correct door arrival placement is planned for a later release.
@@ -36,7 +41,9 @@ The two quest options distinguish the game's door-routed and direct marker categ
 
 ## Tested behavior
 
-Development tests on 1.6.1170 covered custom destinations, undiscovered locations, outdoor quest targets, both quest category toggles, native cancellation and marker placement, input suspension/restoration, horse mounting, and dragon cruise enabled/disabled. Remote maps selected through WorldMapSelector also worked in the tested setup. These tests do not establish support for every worldspace or mod combination.
+All ten supported runtimes passed the same smoke test with Debug logging and all behavior options enabled: selection of discovered and undiscovered locations, custom destinations, door-routed and direct quest targets, cancellation of the expanded dialogs, and custom fast travel outside Raven Rock on Solstheim. Quest and undiscovered travel were not completed separately on every runtime.
+
+Broader development tests on 1.6.1170 covered custom destinations, undiscovered locations, outdoor quest targets, both quest category toggles, native cancellation and marker placement, input suspension/restoration, horse mounting, and dragon cruise enabled/disabled. Remote maps selected through WorldMapSelector also worked in the tested setup. These tests do not establish support for every worldspace or mod combination.
 
 ## Build and package
 
