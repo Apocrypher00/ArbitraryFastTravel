@@ -72,10 +72,17 @@ namespace
         // Format the engine prompt using its %s placeholder.
         // Measure first, then include space for the terminating zero character.
         const int length = std::snprintf(nullptr, 0, prompt, label);
-        if (length < 0) { return false; }
+        if (length < 0) {
+            SKSE::log::error("Could not measure the travel confirmation text.");
+            return false;
+        }
 
         std::vector<char> text(static_cast<std::size_t>(length) + 1);
-        std::snprintf(text.data(), text.size(), prompt, label);
+        // Do not show partial text if formatting fails or differs from the measured length.
+        if (std::snprintf(text.data(), text.size(), prompt, label) != length) {
+            SKSE::log::error("Could not format the complete travel confirmation text.");
+            return false;
+        }
         message = text.data();
         return true;
     }
@@ -100,7 +107,7 @@ namespace TravelDialog
         menu->GetRuntimeData2()->controlsReady = true;
     }
 
-    // Dialog ownership, localized text, and the native Yes adapter live here.
+    // Dialog ownership, localized text, and native button handling live here.
     bool Show(RE::MapMenu* menu, const RE::MapMenuMarker& marker)
     {
         // Save the screen cursor for native Place Marker handling.
@@ -115,7 +122,7 @@ namespace TravelDialog
         // Match native display-name selection: a location name if present, otherwise the marker label.
         const auto* label = marker.fullName ? marker.fullName->fullName.c_str() : marker.customMarker;
         if (!cursor || !yes || !no || !prompt || !placeMarker || !label) {
-            SKSE::log::error("Custom travel confirmation data is unavailable.");
+            SKSE::log::error("Travel confirmation data is unavailable.");
             return false;
         }
 
@@ -136,7 +143,10 @@ namespace TravelDialog
         // construct_at initializes an object in existing storage; it does not allocate a second object.
         // Coordinates are screen positions, separate from the selected travel destination.
         auto* storage = RE::malloc<TravelConfirmation>();
-        if (!storage) { return false; }
+        if (!storage) {
+            SKSE::log::error("Could not allocate the travel confirmation callback.");
+            return false;
+        }
         const auto& position = cursor->GetRuntimeData();
         auto* nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY);
 
@@ -149,7 +159,7 @@ namespace TravelDialog
         // The engine can decline to create the dialog.
         // Unlike blindly suspending input, the failure path leaves controls alone and lets Selection clear the pending destination handle.
         if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, menuDepth, buttons)) {
-            SKSE::log::warn("Native message-box creation declined custom travel confirmation.");
+            SKSE::log::warn("Native message-box creation declined travel confirmation.");
             return false;
         }
 

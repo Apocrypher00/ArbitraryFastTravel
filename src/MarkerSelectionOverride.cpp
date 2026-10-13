@@ -202,7 +202,7 @@ namespace MarkerSelectionOverride
             // Mount state alone is insufficient: cruise must also be enabled.
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (player && Native::HasCruiseMountState(player) && Native::IsCruiseEnabled()) {
-                SKSE::log::info("Delegated marker selection to native mount cruising.");
+                SKSE::log::debug("Delegated marker selection to native mount cruising.");
                 originalSelection(args);
                 return;
             }
@@ -248,9 +248,12 @@ namespace MarkerSelectionOverride
 
             // Preserve the native border and player restriction checks.
             const auto position = destination->GetPosition();
-            if ((marker.type == customDestinationType && !Native::IsPositionWithinBorders(world, &position)) ||
-                !Native::CanFastTravel(player, false)) {
-                SKSE::log::info("Native checks rejected custom travel.");
+            if (marker.type == customDestinationType && !Native::IsPositionWithinBorders(world, &position)) {
+                SKSE::log::debug("Native world borders rejected the custom destination.");
+                return;
+            }
+            if (!Native::CanFastTravel(player, false)) {
+                SKSE::log::debug("Native player restrictions rejected travel: type={}.", marker.type);
                 return;
             }
 
@@ -268,7 +271,7 @@ namespace MarkerSelectionOverride
                 selectedDestination.reset();
                 return;
             }
-            SKSE::log::info(
+            SKSE::log::debug(
                 "Opened expanded travel confirmation: type={} handle={:08X} form={:08X}.",
                 marker.type, static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
             );
@@ -280,6 +283,6 @@ namespace MarkerSelectionOverride
         // This feature owns the engine target and function signature.
         // Creation prepares the original trampoline but does not yet activate the detour.
         // plugin.cpp enables the prepared hooks, or resets them if setup fails.
-        return Hooks::Create("custom destination MarkerClick", REL::ID(53095), &Selection, originalSelection);
+        return Hooks::Create("expanded travel MarkerClick", REL::ID(53095), &Selection, originalSelection);
     }
 }
