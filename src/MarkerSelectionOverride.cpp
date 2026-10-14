@@ -143,6 +143,9 @@ namespace MarkerSelectionOverride
         // Vanilla mount cruising retains the entire original selection path.
         void Selection(const RE::FxDelegateArgs& args)
         {
+            // Start a new log group even for clicks delegated entirely to vanilla.
+            SKSE::log::debug("MarkerClick: begin (arguments={}).", args.GetArgCount());
+
             // FxDelegateArgs exposes the originating handler, which is MapMenu for this registered callback.
             // Reject malformed arguments before indexing the marker array; vanilla's callback assumes valid UI data.
             auto* menu = static_cast<RE::MapMenu*>(args.GetHandler());
@@ -162,15 +165,21 @@ namespace MarkerSelectionOverride
                 return;
             }
             const auto& marker = data->mapMarkers[static_cast<std::size_t>(index)];
+            SKSE::log::debug(
+                "MarkerClick: selected index={} type={} handle={:08X}.",
+                index, marker.type, static_cast<std::uint32_t>(marker.ref)
+            );
 
             // Leave player markers and any unknown categories entirely native.
             if (marker.type != regularMarkerType && marker.type != questMarkerType && marker.type != customDestinationType) {
+                SKSE::log::debug("MarkerClick: vanilla handoff (marker category is not overridden).");
                 originalSelection(args);
                 return;
             }
 
             // Discovered locations retain their complete vanilla path regardless of configuration.
             if (marker.type == regularMarkerType && IsDiscoveredMarker(marker)) {
+                SKSE::log::debug("MarkerClick: vanilla handoff (discovered location).");
                 originalSelection(args);
                 return;
             }
@@ -183,6 +192,7 @@ namespace MarkerSelectionOverride
                 (marker.type == questMarkerType && !Config::GetAllowDirectQuestMarkers() && !Config::GetAllowDoorQuestMarkers()) ||
                 (marker.type == regularMarkerType && !Config::GetAllowUndiscoveredLocations())
              ) {
+                SKSE::log::debug("MarkerClick: vanilla handoff (marker category is disabled).");
                 originalSelection(args);
                 return;
             }
@@ -192,6 +202,7 @@ namespace MarkerSelectionOverride
             if (marker.type == questMarkerType) {
                 for (const auto& candidate : data->mapMarkers) {
                     if (candidate.type == regularMarkerType && candidate.ref == marker.ref && IsDiscoveredMarker(candidate)) {
+                        SKSE::log::debug("MarkerClick: vanilla handoff (quest target matches a discovered location).");
                         originalSelection(args);
                         return;
                     }
@@ -202,7 +213,7 @@ namespace MarkerSelectionOverride
             // Mount state alone is insufficient: cruise must also be enabled.
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (player && Native::HasCruiseMountState(player) && Native::IsCruiseEnabled()) {
-                SKSE::log::debug("Delegated marker selection to native mount cruising.");
+                SKSE::log::debug("MarkerClick: vanilla handoff (native mount cruising).");
                 originalSelection(args);
                 return;
             }
@@ -224,6 +235,7 @@ namespace MarkerSelectionOverride
                     destination ? destination->GetFormID() : 0
                 );
                 if (!enabled || !destination) {
+                    SKSE::log::debug("MarkerClick: vanilla handoff (quest category is disabled or its reference is unresolved).");
                     originalSelection(args);
                     return;
                 }
@@ -242,18 +254,22 @@ namespace MarkerSelectionOverride
             // Quest handles already represent the map-relative target chosen by native routing.
             auto* world = player ? player->GetWorldspace() : nullptr;
             if (!player || !destination || (marker.type == customDestinationType && !world)) {
-                SKSE::log::warn("Selected destination has no resolved reference or required player worldspace.");
+                SKSE::log::warn(
+                    "MarkerClick: stopped before confirmation (playerPresent={} destinationResolved={} playerWorldspacePresent={} type={} handle={:08X}).",
+                    player != nullptr, static_cast<bool>(destination), world != nullptr,
+                    marker.type, static_cast<std::uint32_t>(marker.ref)
+                );
                 return;
             }
 
             // Preserve the native border and player restriction checks.
             const auto position = destination->GetPosition();
             if (marker.type == customDestinationType && !Native::IsPositionWithinBorders(world, &position)) {
-                SKSE::log::debug("Native world borders rejected the custom destination.");
+                SKSE::log::debug("MarkerClick: stopped (native world borders rejected the custom destination).");
                 return;
             }
             if (!Native::CanFastTravel(player, false)) {
-                SKSE::log::debug("Native player restrictions rejected travel: type={}.", marker.type);
+                SKSE::log::debug("MarkerClick: stopped (native player restrictions rejected travel): type={}.", marker.type);
                 return;
             }
 
@@ -268,11 +284,12 @@ namespace MarkerSelectionOverride
             // If no dialog is queued, discard the handle.
             // Input has not been suspended, so there is no callback-dependent recovery to perform.
             if (!TravelDialog::Show(menu, marker)) {
+                SKSE::log::debug("MarkerClick: stopped (travel confirmation was not queued).");
                 selectedDestination.reset();
                 return;
             }
             SKSE::log::debug(
-                "Opened expanded travel confirmation: type={} handle={:08X} form={:08X}.",
+                "MarkerClick: custom handling complete; opened expanded travel confirmation: type={} handle={:08X} form={:08X}.",
                 marker.type, static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
             );
         }
