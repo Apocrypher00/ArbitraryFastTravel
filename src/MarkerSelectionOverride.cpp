@@ -146,7 +146,7 @@ namespace MarkerSelectionOverride
         void Selection(const RE::FxDelegateArgs& args)
         {
             // Start a new log group even for clicks delegated entirely to vanilla.
-            SKSE::log::debug("MarkerClick: begin (arguments={}).", args.GetArgCount());
+            SKSE::log::info("MarkerClick: begin (arguments={}).", args.GetArgCount());
 
             // FxDelegateArgs exposes the originating handler, which is MapMenu for this registered callback.
             // Reject malformed arguments before indexing the marker array; vanilla's callback assumes valid UI data.
@@ -167,21 +167,26 @@ namespace MarkerSelectionOverride
                 return;
             }
             const auto& marker = data->mapMarkers[static_cast<std::size_t>(index)];
-            SKSE::log::debug(
-                "MarkerClick: selected index={} type={} handle={:08X}.",
-                index, marker.type, static_cast<std::uint32_t>(marker.ref)
+            const char* category = "other";
+            if (marker.type == regularMarkerType) { category = "location"; }
+            else if (marker.type == questMarkerType) { category = "quest"; }
+            else if (marker.type == customDestinationType) { category = "custom destination"; }
+
+            SKSE::log::info(
+                "MarkerClick: selected {} (index={} type={} handle={:08X}).",
+                category, index, marker.type, static_cast<std::uint32_t>(marker.ref)
             );
 
             // Leave player markers and any unknown categories entirely native.
             if (marker.type != regularMarkerType && marker.type != questMarkerType && marker.type != customDestinationType) {
-                SKSE::log::debug("MarkerClick: vanilla handoff (marker category is not overridden).");
+                SKSE::log::info("MarkerClick: vanilla handoff (marker category is not overridden).");
                 originalSelection(args);
                 return;
             }
 
             // Discovered locations retain their complete vanilla path regardless of configuration.
             if (marker.type == regularMarkerType && IsDiscoveredMarker(marker)) {
-                SKSE::log::debug("MarkerClick: vanilla handoff (discovered location).");
+                SKSE::log::info("MarkerClick: vanilla handoff (discovered location).");
                 originalSelection(args);
                 return;
             }
@@ -194,7 +199,7 @@ namespace MarkerSelectionOverride
                 (marker.type == questMarkerType && !Config::GetAllowDirectQuestMarkers() && !Config::GetAllowDoorQuestMarkers()) ||
                 (marker.type == regularMarkerType && !Config::GetAllowUndiscoveredLocations())
              ) {
-                SKSE::log::debug("MarkerClick: vanilla handoff (marker category is disabled).");
+                SKSE::log::info("MarkerClick: vanilla handoff (marker category is disabled).");
                 originalSelection(args);
                 return;
             }
@@ -204,7 +209,7 @@ namespace MarkerSelectionOverride
             if (marker.type == questMarkerType) {
                 for (const auto& candidate : data->mapMarkers) {
                     if (candidate.type == regularMarkerType && candidate.ref == marker.ref && IsDiscoveredMarker(candidate)) {
-                        SKSE::log::debug("MarkerClick: vanilla handoff (quest target matches a discovered location).");
+                        SKSE::log::info("MarkerClick: vanilla handoff (quest target matches a discovered location).");
                         originalSelection(args);
                         return;
                     }
@@ -215,7 +220,7 @@ namespace MarkerSelectionOverride
             // Mount state alone is insufficient: cruise must also be enabled.
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (player && Native::HasCruiseMountState(player) && Native::IsCruiseEnabled()) {
-                SKSE::log::debug("MarkerClick: vanilla handoff (native mount cruising).");
+                SKSE::log::info("MarkerClick: vanilla handoff (native mount cruising).");
                 originalSelection(args);
                 return;
             }
@@ -237,7 +242,7 @@ namespace MarkerSelectionOverride
                     destination ? destination->GetFormID() : 0
                 );
                 if (!enabled || !destination) {
-                    SKSE::log::debug("MarkerClick: vanilla handoff (quest category is disabled or its reference is unresolved).");
+                    SKSE::log::info("MarkerClick: vanilla handoff (quest category is disabled or its reference is unresolved).");
                     originalSelection(args);
                     return;
                 }
@@ -268,7 +273,7 @@ namespace MarkerSelectionOverride
             // That path is handled by originalSelection above, retaining its native border check.
             // Apply the ordinary native restrictions here without adding a separate border requirement.
             if (!Native::CanFastTravel(player, false)) {
-                SKSE::log::debug("MarkerClick: stopped (native player restrictions rejected travel): type={}.", marker.type);
+                SKSE::log::info("MarkerClick: travel refused by native restrictions; Skyrim displays the reason in-game (type={}).", marker.type);
                 return;
             }
 
@@ -283,12 +288,12 @@ namespace MarkerSelectionOverride
             // If no dialog is queued, discard the handle.
             // Input has not been suspended, so there is no callback-dependent recovery to perform.
             if (!TravelDialog::Show(menu, marker)) {
-                SKSE::log::debug("MarkerClick: stopped (travel confirmation was not queued).");
+                SKSE::log::info("MarkerClick: stopped (travel confirmation was not queued).");
                 selectedDestination.reset();
                 return;
             }
-            SKSE::log::debug(
-                "MarkerClick: custom handling complete; opened expanded travel confirmation: type={} handle={:08X} form={:08X}.",
+            SKSE::log::info(
+                "MarkerClick: AFT opened travel confirmation: type={} handle={:08X} form={:08X}.",
                 marker.type, static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
             );
         }

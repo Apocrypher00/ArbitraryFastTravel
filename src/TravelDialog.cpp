@@ -10,6 +10,9 @@ namespace
 {
     // Native responses are Yes=1, No=2, and Place Marker=3.
     constexpr std::uint8_t buttonPressOffset = 1;
+    constexpr std::uint8_t yesResponse = 1;
+    constexpr std::uint8_t noResponse = 2;
+    constexpr std::uint8_t placeMarkerResponse = 3;
 
     // Preserve vanilla travel dialog parameters; CommonLib exposes no named warning enum.
     constexpr std::int32_t warningType = 0x19;
@@ -55,7 +58,13 @@ namespace
 
         void Run(std::uint8_t button) override
         {
-            SKSE::log::debug("Travel confirmation response: {} (Yes=1, No=2, Place Marker=3).", button);
+            const char* response = "unknown";
+            if (button == yesResponse) { response = "Yes"; }
+            else if (button == noResponse) { response = "No"; }
+            else if (button == placeMarkerResponse) { response = "Place Marker"; }
+
+            // This records the response passed to native handling, not successful arrival.
+            SKSE::log::info("Travel confirmation response: {} (native value={}).", response, button);
             Native::RunTravelConfirmation(this, button);
         }
 
