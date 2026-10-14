@@ -54,8 +54,10 @@ namespace MarkerSelectionOverride
             }
 
             // SE20109/AE20558 checks destination XY against border regions when enabled by the world.
-            // It does not establish terrain height.
-            bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
+            // It does not establish terrain height and requires a non-null worldspace.
+            // Vanilla uses this in its custom dragon-cruising path, which we delegate to originalSelection.
+            // Retained for reference; AFT's ordinary fast-travel path does not call this helper.
+            [[maybe_unused]] bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
             {
                 using Function = bool (*)(RE::TESWorldSpace*, const RE::NiPoint3*);
                 static REL::Relocation<Function> function{REL::RelocationID(20109, 20558)};
@@ -250,24 +252,21 @@ namespace MarkerSelectionOverride
             auto& selectedDestination = menu->GetRuntimeData()->mapMarker;
             selectedDestination.reset();
 
-            // Preserve the original custom destination border check.
-            // Quest handles already represent the map-relative target chosen by native routing.
-            auto* world = player ? player->GetWorldspace() : nullptr;
-            if (!player || !destination || (marker.type == customDestinationType && !world)) {
+            // Ordinary fast travel needs a player and destination, but not the player's current worldspace.
+            // Interiors may have no worldspace. Native eligibility decides whether travel is allowed,
+            // including changes made by restriction-removal mods such as Unlimited Fast Travel.
+            if (!player || !destination) {
                 SKSE::log::warn(
-                    "MarkerClick: stopped before confirmation (playerPresent={} destinationResolved={} playerWorldspacePresent={} type={} handle={:08X}).",
-                    player != nullptr, static_cast<bool>(destination), world != nullptr,
+                    "MarkerClick: stopped before confirmation (playerPresent={} destinationResolved={} type={} handle={:08X}).",
+                    player != nullptr, static_cast<bool>(destination),
                     marker.type, static_cast<std::uint32_t>(marker.ref)
                 );
                 return;
             }
 
-            // Preserve the native border and player restriction checks.
-            const auto position = destination->GetPosition();
-            if (marker.type == customDestinationType && !Native::IsPositionWithinBorders(world, &position)) {
-                SKSE::log::debug("MarkerClick: stopped (native world borders rejected the custom destination).");
-                return;
-            }
+            // Vanilla checks custom destination borders only in its dragon-cruising selection path.
+            // That path is handled by originalSelection above, retaining its native border check.
+            // Apply the ordinary native restrictions here without adding a separate border requirement.
             if (!Native::CanFastTravel(player, false)) {
                 SKSE::log::debug("MarkerClick: stopped (native player restrictions rejected travel): type={}.", marker.type);
                 return;
