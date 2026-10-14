@@ -26,7 +26,18 @@ Install the SKSE build and Address Library database matching your exact Skyrim r
 Skyrim `1.6.317` is excluded because its matching official SKSE `2.1.0` does not load native DLL plugins.
 Other runtimes, GOG, VR, and future Skyrim updates are unsupported unless listed above.
 
-WorldMapSelector remote maps worked in the tested setup. SkyUI is not required.
+SkyUI is not required.
+
+## Known Compatibility
+
+AFT expands which destinations you can select. It does not remove fast-travel restrictions or enable travel from interiors on its own. Those rules remain controlled by Skyrim and any mods that change them.
+
+- [World Map Selector](https://www.nexusmods.com/skyrimspecialedition/mods/187315): Select another world's map and use AFT destinations there.
+- [Unlimited Fast Travel](https://www.nexusmods.com/skyrimspecialedition/mods/37889): Change the restrictions on ordinary fast travel, including travel from interiors. AFT respects those changes.
+
+Other mods that provide similar map-selection or travel-restriction features may also be compatible. UFT's dragon-specific setting remains unverified with AFT.
+
+For plugin developers: AFT detours the native map menu's `MarkerClick` callback (Address Library IDs: SE `52208`, AE `53095`). Another plugin that replaces or patches this function may conflict. AFT calls native travel helpers normally, allowing changes to those helpers to remain effective.
 
 ## Requirements and installation
 
