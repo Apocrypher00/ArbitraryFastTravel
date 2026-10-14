@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(
     ArbitraryFastTravel
-    VERSION 1.0.0
+    VERSION 1.0.1
     LANGUAGES CXX
 )
 
@@ -65,10 +65,19 @@ find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE "${SIMPLEINI_INCLUDE_DIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE minhook::minhook)
 
-# Keep the default INI beside development builds, like WMS.
+# Select one configuration for both the loose build output and the ZIP.
+# Public builds always default to the release INI; the testing preset opts in explicitly.
+option(AFT_USE_TESTING_INI "Use the editable testing INI instead of public defaults." OFF)
+if(AFT_USE_TESTING_INI)
+    set(aftConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/config/ArbitraryFastTravel-testing.ini")
+else()
+    set(aftConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini")
+endif()
+
+# Keep the selected INI beside development builds, using the name read by the plugin.
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini"
+        "${aftConfigurationFile}"
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/ArbitraryFastTravel.ini"
 )
 

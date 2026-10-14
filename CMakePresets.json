@@ -18,7 +18,8 @@
       },
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+        "AFT_USE_TESTING_INI": "OFF"
       }
     },
     {
@@ -35,6 +36,14 @@
       "inherits": "windows-x64-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x64-Release-Testing",
+      "displayName": "x64 Release Testing",
+      "inherits": "x64-Release",
+      "cacheVariables": {
+        "AFT_USE_TESTING_INI": "ON"
       }
     }
   ],
@@ -59,6 +68,13 @@
       "targets": [
         "ArbitraryFastTravel"
       ]
+    },
+    {
+      "name": "x64-Release-Testing-Package",
+      "displayName": "x64 Release Testing Package",
+      "description": "Build an optimized testing ZIP with Debug logging and the editable testing INI.",
+      "configurePreset": "x64-Release-Testing",
+      "targets": [ "package" ]
     }
   ]
 }

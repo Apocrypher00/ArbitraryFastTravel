@@ -6,11 +6,18 @@ install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION "${packagePluginDirectory}" COMPONENT ReleasePackage
 )
 
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini"
-    DESTINATION "${packagePluginDirectory}" COMPONENT ReleasePackage
+install(FILES "${aftConfigurationFile}"
+    DESTINATION "${packagePluginDirectory}"
+    RENAME "ArbitraryFastTravel.ini" COMPONENT ReleasePackage
 )
 
 function(install_license sourcePath outputName)
+    # Local testing archives contain only the plugin and testing INI.
+    # Public packages still validate and include every required notice.
+    if(AFT_USE_TESTING_INI)
+        return()
+    endif()
+
     if(NOT EXISTS "${sourcePath}")
         message(FATAL_ERROR "Required license file was not found: ${sourcePath}")
     endif()
@@ -36,6 +43,9 @@ endforeach()
 
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
+if(AFT_USE_TESTING_INI)
+    string(APPEND CPACK_PACKAGE_FILE_NAME "-testing")
+endif()
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 set(CPACK_INSTALL_CMAKE_PROJECTS "${CMAKE_BINARY_DIR};${PROJECT_NAME};ReleasePackage;/")
 include(CPack)

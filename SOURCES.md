@@ -4,6 +4,7 @@ Release source and dependency revisions:
 
 | Release tag | CommonLibSSE-NG | vcpkg builtin baseline |
 | --- | --- | --- |
+| [v1.0.1](https://github.com/Apocrypher00/ArbitraryFastTravel/tree/v1.0.1) | 7.0.0, `8b032fa992750d654d6d38a33731714d8b86be1f` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 | [v1.0.0](https://github.com/Apocrypher00/ArbitraryFastTravel/tree/v1.0.0) | 7.0.0, `8b032fa992750d654d6d38a33731714d8b86be1f` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 
 Each release tag records the plugin source, the exact CommonLib commit in
@@ -21,7 +22,7 @@ Historical tags retain the dependency revisions and terms recorded for that tag.
 
 Project source: [Apocrypher00/ArbitraryFastTravel](https://github.com/Apocrypher00/ArbitraryFastTravel).
 For a published release, use its matching release tag rather than the current master branch.
-For version 1.0.0, use the `v1.0.0` tag listed above.
+For version 1.0.1, use the `v1.0.1` tag listed above.
 
 Pinned CommonLib source:
 [8b032fa992750d654d6d38a33731714d8b86be1f](https://github.com/alandtse/CommonLibSSE-NG/tree/8b032fa992750d654d6d38a33731714d8b86be1f).

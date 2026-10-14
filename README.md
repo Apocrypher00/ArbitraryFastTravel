@@ -58,7 +58,7 @@ Edit `SKSE/Plugins/ArbitraryFastTravel.ini` inside the installed mod, or `Data/S
 
 | Section | Setting | Default | Behavior |
 | --- | --- | --- | --- |
-| General | LogLevel | Info | Trace, Debug, Info, Warn, Err, Critical, or Off. Debug includes quest destination diagnostics. |
+| General | LogLevel | Info | Trace, Debug, Info, Warn, Err, Critical, or Off. Info records each marker click and its handling. Debug adds quest destination diagnostics. |
 | Behavior | AllowCustomDestination | true | Fast travel to the existing custom destination. |
 | Behavior | AllowDirectQuestMarkers | false | Fast travel to quest targets displayed directly, usually outdoor objectives. |
 | Behavior | AllowDoorQuestMarkers | false | Experimental travel to quest targets represented by a door or the game's routing fallback. |
@@ -102,7 +102,15 @@ Requires Visual Studio with C++ tools, CMake supporting preset schema 6 (3.25 or
 
 CMake fetches CommonLibSSE-NG at pinned commit `8b032fa992750d654d6d38a33731714d8b86be1f`; no submodule setup is required. Dependencies use `x64-windows-static-md`.
 
-Configure `x64-Release`, then build `x64-Release-Package` to generate `out/build/x64-Release/ArbitraryFastTravel-1.0.0.zip`. The package includes the default INI, with custom travel enabled, optional categories disabled, and Info logging. Test the resulting ZIP through a separate mod-manager mod before publishing.
+Configure `x64-Release`, then build `x64-Release-Package` to generate `out/build/x64-Release/ArbitraryFastTravel-1.0.1.zip`. The package includes the default INI, with custom travel enabled, optional categories disabled, and Info logging. Test the resulting ZIP through a separate mod-manager mod before publishing.
+
+### Testing package
+
+Edit `config/ArbitraryFastTravel-testing.ini` for your test pass. It starts with Debug logging and all marker options enabled, including experimental door quest travel.
+
+Configure `x64-Release-Testing`, then build `x64-Release-Testing-Package`. This uses an optimized Release build in a separate output directory and produces `ArbitraryFastTravel-1.0.1-testing.zip`. The testing INI is installed as `SKSE/Plugins/ArbitraryFastTravel.ini`, so no runtime option or manual rename is needed. Rebuilding the package includes your latest testing INI edits.
+
+The normal `x64-Release-Package` preset continues to use the public defaults. Testing archives omit license documents and are for local development only; use the normal package preset for distribution. Existing higher-priority INI overrides in a mod manager still take precedence.
 
 ## License and sources
 
