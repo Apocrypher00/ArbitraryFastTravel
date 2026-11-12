@@ -19,8 +19,8 @@ GPL-3.0 Linking Exception (with Corresponding Source). Distribution of the combi
 DLL is therefore governed by those terms, including their corresponding-source and
 notice requirements.
 
-The complete CommonLibSSE NG terms are preserved in the pinned source fetched by
-CMake: `COPYING` and `EXCEPTIONS.md` at the dependency source root.
+The complete CommonLibSSE NG terms are preserved in the pinned submodule:
+`extern/CommonLibVR/COPYING` and `extern/CommonLibVR/EXCEPTIONS.md`.
 
 They are also included in packaged binary releases. This treatment of the combined
 DLL does not withdraw the separate Unlicense grant for ArbitraryFastTravel-authored

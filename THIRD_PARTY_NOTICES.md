@@ -28,9 +28,9 @@ other third-party projects used to build or run ArbitraryFastTravel.
 | [DirectXMath](https://github.com/microsoft/DirectXMath) | MIT | Copyright (c) Microsoft Corporation. |
 | [DirectX Tool Kit](https://github.com/microsoft/DirectXTK) | MIT | Copyright (c) Microsoft Corporation. |
 
-The exact dependency revisions are recorded by the CommonLibSSE-NG Git commit in
-`CMakeLists.txt`, `vcpkg.json`, and its builtin baseline. See [SOURCES.md](SOURCES.md).
-CommonLib is fetched at that commit; this project does not use a CommonLib submodule.
+The exact dependency revisions are recorded by the CommonLibSSE-NG submodule at
+`extern/CommonLibVR`, `vcpkg.json`, and its builtin baseline. See [SOURCES.md](SOURCES.md).
+Historical releases retain the dependency setup recorded in their source tags.
 
 ## Included license texts
 

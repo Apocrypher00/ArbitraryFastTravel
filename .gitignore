@@ -36,8 +36,9 @@ cmake_install.cmake
 Thumbs.db
 .DS_Store
 
-# CMake fetches the pinned dependency; this local copy is not project source.
-/extern/
+# Keep other local dependency copies out of Git; CommonLibVR is a pinned submodule.
+/extern/*
+!/extern/CommonLibVR/
 /CMakeUserPresets.json
 
 # Local research and agent instructions are kept outside the public source.

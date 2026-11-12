@@ -24,13 +24,9 @@ set(ENABLE_SKYRIM_AE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-include(FetchContent)
-FetchContent_Declare(CommonLibSSE
-    GIT_REPOSITORY https://github.com/alandtse/CommonLibSSE-NG.git
-    GIT_TAG 8b032fa992750d654d6d38a33731714d8b86be1f
-)
-FetchContent_MakeAvailable(CommonLibSSE)
-include("${commonlibsse_SOURCE_DIR}/cmake/CommonLibSSE.cmake")
+add_subdirectory(extern/CommonLibVR)
+
+include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake")
 
 # CommonLib generates the SKSE plugin metadata from this runtime list.
 # Native boundaries and callback layouts were compared across these runtimes.
