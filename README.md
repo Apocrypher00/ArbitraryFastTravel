@@ -102,15 +102,20 @@ Requires Visual Studio with C++ tools, CMake supporting preset schema 6 (3.25 or
 
 CMake fetches CommonLibSSE-NG at pinned commit `8b032fa992750d654d6d38a33731714d8b86be1f`; no submodule setup is required. Dependencies use `x64-windows-static-md`.
 
-Configure `x64-Release`, then build `x64-Release-Package` to generate `out/build/x64-Release/ArbitraryFastTravel-1.0.1.zip`. The package includes the default INI, with custom travel enabled, optional categories disabled, and Info logging. Test the resulting ZIP through a separate mod-manager mod before publishing.
+Configure `x64-Release`, then choose a package preset:
 
-### Testing package
+| Build preset | Package |
+| --- | --- |
+| `x64-Release-Package` | Public release: default settings and license documents. |
+| `x64-Release-Testing-Package` | Private testing: your testing settings, without license documents. |
 
-Edit `config/ArbitraryFastTravel-testing.ini` for your test pass. It starts with Debug logging and all marker options enabled, including experimental door quest travel.
+Both ZIPs appear in `out/build/x64-Release/` and contain the same DLL. The testing ZIP has `-testing` at the end of its name. Use the public package for distribution.
 
-Configure `x64-Release-Testing`, then build `x64-Release-Testing-Package`. This uses an optimized Release build in a separate output directory and produces `ArbitraryFastTravel-1.0.1-testing.zip`. The testing INI is installed as `SKSE/Plugins/ArbitraryFastTravel.ini`, so no runtime option or manual rename is needed. Rebuilding the package includes your latest testing INI edits.
+### Testing settings
 
-The normal `x64-Release-Package` preset continues to use the public defaults. Testing archives omit license documents and are for local development only; use the normal package preset for distribution. Existing higher-priority INI overrides in a mod manager still take precedence.
+Edit `config/ArbitraryFastTravel-testing.ini`, then rebuild the testing package. It starts with Debug logging and every marker option enabled, including experimental door quest travel. The package gives it the normal `ArbitraryFastTravel.ini` filename, ready to install with your mod manager.
+
+Public packages use the root `ArbitraryFastTravel.ini`. Editing the testing settings does not change public packages or the INI beside the built DLL.
 
 ## License and sources
 

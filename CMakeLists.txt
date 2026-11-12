@@ -65,20 +65,10 @@ find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE "${SIMPLEINI_INCLUDE_DIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE minhook::minhook)
 
-# Select one configuration for both the loose build output and the ZIP.
-# Public builds always default to the release INI; the testing preset opts in explicitly.
-option(AFT_USE_TESTING_INI "Use the editable testing INI instead of public defaults." OFF)
-if(AFT_USE_TESTING_INI)
-    set(aftConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/config/ArbitraryFastTravel-testing.ini")
-else()
-    set(aftConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini")
-endif()
+set(aftConfigurationFile "${CMAKE_CURRENT_SOURCE_DIR}/ArbitraryFastTravel.ini")
 
-# Keep the selected INI beside development builds, using the name read by the plugin.
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${aftConfigurationFile}"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/ArbitraryFastTravel.ini"
-)
+# The single-config Ninja presets place the DLL in this same directory.
+# configure_file also tracks INI edits, so rebuilding refreshes it without relinking the DLL.
+configure_file("${aftConfigurationFile}" "${CMAKE_CURRENT_BINARY_DIR}/ArbitraryFastTravel.ini" COPYONLY)
 
 include(cmake/Packaging.cmake)
