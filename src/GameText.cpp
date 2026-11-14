@@ -5,22 +5,30 @@
 
 namespace
 {
-    const char* ReadTextPointer(REL::RelocationID id)
-    {
-        // IDs are paired as SE, AE, matching the native localized text storage.
-        // This reads existing text; it does not translate an arbitrary string.
-        // CommonLib's settings/translator APIs are different entry points;
-        // equivalence to these native dialog pointers has not been established.
-        return *REL::Relocation<const char**>{id};
-    }
+    // Resolve storage addresses at startup; read the engine's current text only when needed.
+    REL::Relocation<const char**> yesText{};
+    REL::Relocation<const char**> noText{};
+    REL::Relocation<const char**> placeMarkerText{};
+    REL::Relocation<const char**> fastTravelPromptText{};
+
 }
 
 namespace GameText
 {
-    const char* Yes() { return ReadTextPointer(REL::RelocationID(506336, 376286)); }
-    const char* No() { return ReadTextPointer(REL::RelocationID(506338, 376289)); }
-    const char* PlaceMarker() { return ReadTextPointer(REL::RelocationID(507160, 377924)); }
-    const char* FastTravelPrompt() { return ReadTextPointer(REL::RelocationID(506680, 377027)); }
+    void ResolveNativeFunctions()
+    {
+        // IDs are paired as SE, AE, matching native localized text storage.
+        yesText              = REL::RelocationID(506336, 376286);
+        noText               = REL::RelocationID(506338, 376289);
+        placeMarkerText      = REL::RelocationID(507160, 377924);
+        fastTravelPromptText = REL::RelocationID(506680, 377027);
+    }
+
+    // Borrow existing engine text rather than performing translation lookups.
+    const char* Yes()              { return *yesText; }
+    const char* No()               { return *noText; }
+    const char* PlaceMarker()      { return *placeMarkerText; }
+    const char* FastTravelPrompt() { return *fastTravelPromptText; }
 
     const char* WithoutIDPrefix(const char* text)
     {

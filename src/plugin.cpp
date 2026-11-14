@@ -2,6 +2,8 @@
 #include "MarkerSelectionOverride.h"
 #include "Hooks.h"
 #include "Config.h"
+#include "TravelDialog.h"
+#include "GameText.h"
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
@@ -10,6 +12,11 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
 
     // Read settings and apply the log level before installing feature hooks.
     Config::Load();
+
+    // Resolve directly called native functions and text storage before preparing detours.
+    MarkerSelectionOverride::ResolveNativeFunctions();
+    TravelDialog::ResolveNativeFunctions();
+    GameText::ResolveNativeFunctions();
 
     if (!Hooks::Initialize()) { return false; }
 

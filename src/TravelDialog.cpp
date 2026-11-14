@@ -9,38 +9,29 @@
 namespace
 {
     // Native responses are Yes=1, No=2, and Place Marker=3.
-    constexpr std::uint8_t buttonPressOffset = 1;
-    constexpr std::uint8_t yesResponse = 1;
-    constexpr std::uint8_t noResponse = 2;
+    constexpr std::uint8_t buttonPressOffset   = 1;
+    constexpr std::uint8_t yesResponse         = 1;
+    constexpr std::uint8_t noResponse          = 2;
     constexpr std::uint8_t placeMarkerResponse = 3;
 
     // Preserve vanilla travel dialog parameters; CommonLib exposes no named warning enum.
     constexpr std::int32_t warningType = 0x19;
-    constexpr std::int32_t menuDepth = 4;
+    constexpr std::int32_t menuDepth   = 4;
 
     // The native input helper uses bits 1 (zoom), 2 (look), and 4 (movement).
     constexpr std::uint32_t allMapInput = 7;
 
     namespace Native
     {
-        // Resolve each binding on first use, after SKSE/CommonLib initialization.
         // SE52236/AE53127 checks that MapMenu is open. Yes queues fade/map close and fast travel.
         // Native No restores input; Place Marker restores input and uses the saved cursor.
-        void RunTravelConfirmation(RE::IMessageBoxCallback* callback, std::uint8_t button)
-        {
-            using Function = void (*)(RE::IMessageBoxCallback*, std::uint8_t);
-            static REL::Relocation<Function> function{REL::RelocationID(52236, 53127)};
-            function(callback, button);
-        }
+        using RunTravelConfirmationFn = void (*)(RE::IMessageBoxCallback*, std::uint8_t);
+        REL::Relocation<RunTravelConfirmationFn> runTravelConfirmation{};
 
         // SE52213/AE53100 registers or unregisters the selected map input handlers.
         // Disabling also clears the look handler state, matching vanilla's cleanup.
-        void SetInputHandlersEnabled(RE::MapMenu* menu, bool enabled, std::uint32_t mask)
-        {
-            using Function = void (*)(RE::MapMenu*, bool, std::uint32_t);
-            static REL::Relocation<Function> function{REL::RelocationID(52213, 53100)};
-            function(menu, enabled, mask);
-        }
+        using SetInputHandlersEnabledFn = void (*)(RE::MapMenu*, bool, std::uint32_t);
+        REL::Relocation<SetInputHandlersEnabledFn> setInputHandlersEnabled{};
     }
 
     // Native button handling expects this layout in SE 1.5.97 and the supported AE runtimes.
@@ -65,7 +56,7 @@ namespace
 
             // This records the response passed to native handling, not successful arrival.
             SKSE::log::info("Travel confirmation response: {} (native value={}).", response, button);
-            Native::RunTravelConfirmation(this, button);
+            Native::runTravelConfirmation(this, button);
         }
 
         RE::MapMenu* mapMenu; // 10
@@ -100,10 +91,16 @@ namespace
 
 namespace TravelDialog
 {
+    void ResolveNativeFunctions()
+    {
+        Native::runTravelConfirmation   = REL::RelocationID(52236, 53127);
+        Native::setInputHandlersEnabled = REL::RelocationID(52213, 53100);
+    }
+
     void SuspendMapInput(RE::MapMenu* menu)
     {
         // Use only after a dialog was successfully queued, if full locking is desired.
-        Native::SetInputHandlersEnabled(menu, false, allMapInput);
+        Native::setInputHandlersEnabled(menu, false, allMapInput);
         menu->GetRuntimeData2()->controlsReady = false;
     }
 
@@ -112,7 +109,7 @@ namespace TravelDialog
         // Pair with SuspendMapInput when cancelling a locked dialog.
         // Yes closes the map through native travel instead.
         // The caller must ensure it is open.
-        Native::SetInputHandlersEnabled(menu, true, allMapInput);
+        Native::setInputHandlersEnabled(menu, true, allMapInput);
         menu->GetRuntimeData2()->controlsReady = true;
     }
 
@@ -166,7 +163,7 @@ namespace TravelDialog
         RE::BSTSmartPointer<RE::IMessageBoxCallback> callback(nativeLayout);
 
         // The engine can decline to create the dialog.
-        // Unlike blindly suspending input, the failure path leaves controls alone and lets Selection clear the pending destination handle.
+        // Unlike blindly suspending input, the failure path leaves controls alone and lets MarkerClick clear the pending destination handle.
         if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, menuDepth, buttons)) {
             SKSE::log::warn("Native message-box creation declined travel confirmation.");
             return false;
