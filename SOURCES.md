@@ -14,7 +14,7 @@ the recorded dependency versions; it does not upgrade them to the latest version
 GitHub's source ZIP does not include submodule contents. Dependency setup may
 require internet access. Builds use `x64-windows-static-md`.
 
-Original plugin code is under the Unlicense. CommonLib 7.0.0 uses
+Original plugin code is under the Unlicense. CommonLib uses
 GPL-3.0-or-later with its Modding and Linking Exceptions; other dependencies
 retain their respective licenses. Release ZIPs include their applicable notices.
 Historical tags retain the dependency revisions and terms recorded for that tag.
@@ -25,8 +25,14 @@ Project source: [Apocrypher00/ArbitraryFastTravel](https://github.com/Apocrypher
 For a published release, use its matching release tag rather than the current master branch.
 For version 1.0.1, use the `v1.0.1` tag listed above.
 
-Pinned CommonLib source:
-[8b032fa992750d654d6d38a33731714d8b86be1f](https://github.com/alandtse/CommonLibSSE-NG/tree/8b032fa992750d654d6d38a33731714d8b86be1f).
+Current development dependencies:
+
+- CommonLibSSE-NG 15.6.0: [cce63b4c8aacd2766c21f44b408df92a3ad9e95c](https://github.com/alandtse/CommonLibSSE-NG/tree/cce63b4c8aacd2766c21f44b408df92a3ad9e95c).
+- vcpkg baseline: `00c5775211f45cd08b37fce0484b4cb940e422ab`.
+
+These dependencies match CommonLib's own dependency configuration at that revision.
+
+Published releases retain the revisions listed in the table above.
 The pinned vcpkg baseline and manifest identify the dependency port recipes, versions,
 and upstream source revisions used by the build.
 

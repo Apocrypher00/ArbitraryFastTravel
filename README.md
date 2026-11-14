@@ -100,7 +100,7 @@ Documents/My Games/Skyrim Special Edition/SKSE/ArbitraryFastTravel.log
 
 Requires Visual Studio with C++ tools, CMake supporting preset schema 6 (3.25 or later), Ninja, Git, and vcpkg. Set `VCPKG_ROOT` to your vcpkg installation and open the folder as a CMake project in Visual Studio.
 
-CommonLibSSE-NG is a Git submodule at `extern/CommonLibVR`, pinned to commit `8b032fa992750d654d6d38a33731714d8b86be1f`. Clone with submodules:
+CommonLibSSE-NG is a Git submodule at `extern/CommonLibVR`, pinned to commit `cce63b4c8aacd2766c21f44b408df92a3ad9e95c`. Clone with submodules:
 
 ```powershell
 git clone --recurse-submodules https://github.com/Apocrypher00/ArbitraryFastTravel.git

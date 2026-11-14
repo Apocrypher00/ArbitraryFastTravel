@@ -20,7 +20,7 @@ DLL is therefore governed by those terms, including their corresponding-source a
 notice requirements.
 
 The complete CommonLibSSE NG terms are preserved in the pinned submodule:
-`extern/CommonLibVR/COPYING` and `extern/CommonLibVR/EXCEPTIONS.md`.
+`extern/CommonLibVR/COPYING.txt` and `extern/CommonLibVR/EXCEPTIONS.md`.
 
 They are also included in packaged binary releases. This treatment of the combined
 DLL does not withdraw the separate Unlicense grant for ArbitraryFastTravel-authored

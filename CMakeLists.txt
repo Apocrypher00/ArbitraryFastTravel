@@ -56,6 +56,9 @@ add_commonlibsse_plugin(${PROJECT_NAME}
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h)
 target_compile_options(${PROJECT_NAME} PRIVATE /Zc:preprocessor /utf-8)
 
+# Keep Windows min/max macros from colliding with standard-library functions.
+target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+
 find_package(minhook CONFIG REQUIRED)
 find_path(SIMPLEINI_INCLUDE_DIR SimpleIni.h REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE "${SIMPLEINI_INCLUDE_DIR}")
