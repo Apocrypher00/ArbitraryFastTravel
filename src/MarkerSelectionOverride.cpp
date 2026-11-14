@@ -19,6 +19,17 @@ namespace MarkerSelectionOverride
         // CommonLib agrees on this value.
         constexpr std::uint32_t doorQuestDisplayType = 0x3F;
 
+        namespace Trampoline
+        {
+            // MarkerClick is registered with Scaleform, Skyrim's menu system.
+            // Its single argument contains the selected marker index.
+            // The function pointer below describes that callback signature, not a new travel API.
+            using MarkerClickFn = void (*)(const RE::FxDelegateArgs&);
+            // MinHook fills this with a trampoline:
+            // a callable route to the original function after its entry has been redirected to MarkerClick below.
+            MarkerClickFn markerClick = nullptr;
+        }
+
         namespace Native
         {
             // Keep bindings beside their owning feature; startup resolves the required ones before hook activation.
@@ -49,7 +60,7 @@ namespace MarkerSelectionOverride
 
             // SE20109/AE20558 checks destination XY against border regions when enabled by the world.
             // It does not establish terrain height and requires a non-null worldspace.
-            // Vanilla uses this in its custom dragon-cruising path, which we delegate to originalMarkerClick.
+            // Vanilla uses this in its custom dragon-cruising path, which we delegate to Trampoline::markerClick.
             // Retained for reference; AFT's ordinary fast-travel path does not call this helper.
             [[maybe_unused]] bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
             {
@@ -115,14 +126,6 @@ namespace MarkerSelectionOverride
             return extra && extra->mapData && extra->mapData->flags.any(RE::MapMarkerData::Flag::kCanTravelTo);
         }
 
-        // MarkerClick is registered with Scaleform, Skyrim's menu system.
-        // Its single argument contains the selected marker index.
-        // The function pointer below describes that callback signature, not a new travel API.
-        using MarkerClickFn = void (*)(const RE::FxDelegateArgs&);
-        // MinHook fills this with a trampoline:
-        // a callable route to the original function after its entry has been redirected to MarkerClick below.
-        MarkerClickFn originalMarkerClick = nullptr;
-
         // Whole-function detour boundary.
         // We do not patch individual instructions or temporarily change marker types.
         // Expand regular undiscovered, quest, and custom destination eligibility.
@@ -164,14 +167,14 @@ namespace MarkerSelectionOverride
             // Leave player markers and any unknown categories entirely native.
             if (marker.type != regularMarkerType && marker.type != questMarkerType && marker.type != customDestinationType) {
                 SKSE::log::info("MarkerClick: vanilla handoff (marker category is not overridden).");
-                originalMarkerClick(args);
+                Trampoline::markerClick(args);
                 return;
             }
 
             // Discovered locations retain their complete vanilla path regardless of configuration.
             if (marker.type == regularMarkerType && IsDiscoveredMarker(marker)) {
                 SKSE::log::info("MarkerClick: vanilla handoff (discovered location).");
-                originalMarkerClick(args);
+                Trampoline::markerClick(args);
                 return;
             }
 
@@ -184,7 +187,7 @@ namespace MarkerSelectionOverride
                 (marker.type == regularMarkerType && !Config::GetAllowUndiscoveredLocations())
              ) {
                 SKSE::log::info("MarkerClick: vanilla handoff (marker category is disabled).");
-                originalMarkerClick(args);
+                Trampoline::markerClick(args);
                 return;
             }
 
@@ -194,7 +197,7 @@ namespace MarkerSelectionOverride
                 for (const auto& candidate : data->mapMarkers) {
                     if (candidate.type == regularMarkerType && candidate.ref == marker.ref && IsDiscoveredMarker(candidate)) {
                         SKSE::log::info("MarkerClick: vanilla handoff (quest target matches a discovered location).");
-                        originalMarkerClick(args);
+                        Trampoline::markerClick(args);
                         return;
                     }
                 }
@@ -205,7 +208,7 @@ namespace MarkerSelectionOverride
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (player && Native::hasCruiseMountState(player) && Native::isCruiseEnabled()) {
                 SKSE::log::info("MarkerClick: vanilla handoff (native mount cruising).");
-                originalMarkerClick(args);
+                Trampoline::markerClick(args);
                 return;
             }
 
@@ -227,7 +230,7 @@ namespace MarkerSelectionOverride
                 );
                 if (!enabled || !destination) {
                     SKSE::log::info("MarkerClick: vanilla handoff (quest category is disabled or its reference is unresolved).");
-                    originalMarkerClick(args);
+                    Trampoline::markerClick(args);
                     return;
                 }
             }
@@ -254,7 +257,7 @@ namespace MarkerSelectionOverride
             }
 
             // Vanilla checks custom destination borders only in its dragon-cruising selection path.
-            // That path is handled by originalMarkerClick above, retaining its native border check.
+            // That path is handled by Trampoline::markerClick above, retaining its native border check.
             // Apply the ordinary native restrictions here without adding a separate border requirement.
             if (!Native::canFastTravel(player, false)) {
                 SKSE::log::info("MarkerClick: travel refused by native restrictions; Skyrim displays the reason in-game (type={}).", marker.type);
@@ -300,7 +303,7 @@ namespace MarkerSelectionOverride
             "MarkerClick",
             REL::RelocationID(52208, 53095),
             MarkerClick,
-            originalMarkerClick
+            Trampoline::markerClick
         );
     }
 }
