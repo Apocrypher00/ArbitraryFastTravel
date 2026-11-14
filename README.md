@@ -6,7 +6,7 @@ Optional settings also enable travel to undiscovered locations and quest targets
 
 ## Compatibility
 
-Supported Steam Skyrim runtimes and the SKSE builds present in the test setup:
+Supported Skyrim runtimes (Steam unless marked GOG):
 
 | Skyrim | SKSE |
 | --- | --- |
@@ -19,12 +19,15 @@ Supported Steam Skyrim runtimes and the SKSE builds present in the test setup:
 | `1.6.640` | `2.2.3` |
 | `1.6.1130` | `2.2.5` |
 | `1.6.1170` | `2.2.8` |
+| `1.6.1179` (GOG) | `2.2.6` (GOG) |
 | `1.7.99` | `2.3.0` |
 | `1.7.104` | `2.3.1` |
 
 Install the SKSE build and Address Library database matching your exact Skyrim runtime.
+GOG requires the GOG SKSE build, not the Steam build with the same version number.
+The same DLL supports the listed Steam and GOG runtimes.
 Skyrim `1.6.317` is excluded because its matching official SKSE `2.1.0` does not load native DLL plugins.
-Other runtimes, GOG, VR, and future Skyrim updates are unsupported unless listed above.
+Other runtimes, VR, and future Skyrim updates are unsupported unless listed above.
 
 SkyUI is not required.
 
@@ -80,7 +83,9 @@ The two quest options distinguish the game's door-routed and direct marker categ
 
 ## Tested behavior
 
-All eleven supported runtimes passed the same smoke test with Debug logging and all behavior options enabled: selection of discovered and undiscovered locations, custom destinations, door-routed and direct quest targets, cancellation of the expanded dialogs, and custom fast travel outside Raven Rock on Solstheim. Quest and undiscovered travel were not completed separately on every runtime.
+The eleven supported Steam runtimes passed the same smoke test with Debug logging and all behavior options enabled: selection of discovered and undiscovered locations, custom destinations, door-routed and direct quest targets, cancellation of the expanded dialogs, and custom fast travel outside Raven Rock on Solstheim. Quest and undiscovered travel were not completed separately on every runtime.
+
+GOG `1.6.1179` passed the current regression test, including undiscovered and custom travel, No and Place Marker handling, and door-routed and direct quest targets on a remote World Map Selector map.
 
 Broader development tests on 1.6.1170 covered custom destinations, undiscovered locations, outdoor quest targets, both quest category toggles, native cancellation and marker placement, input suspension/restoration, horse mounting, and dragon cruise enabled/disabled. Remote maps selected through WorldMapSelector also worked in the tested setup. These tests do not establish support for every worldspace or mod combination.
 
@@ -95,6 +100,8 @@ The log is normally written to:
 ```text
 Documents/My Games/Skyrim Special Edition/SKSE/ArbitraryFastTravel.log
 ```
+
+For GOG, the log is written to `Documents/My Games/Skyrim Special Edition GOG/SKSE/ArbitraryFastTravel.log`.
 
 ## Build and package
 
