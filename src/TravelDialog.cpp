@@ -18,8 +18,11 @@ namespace
     constexpr std::int32_t warningType = 0x19;
     constexpr std::int32_t menuDepth   = 4;
 
-    // The native input helper uses bits 1 (zoom), 2 (look), and 4 (movement).
-    constexpr std::uint32_t allMapInput = 7;
+    // Bits from low to high select zoom, look, movement, click, and touchpad.
+    // Flat 0x07 = 0b00111 selects the first three handlers.
+    // VR   0x1F = 0b11111 selects all five handlers.
+    constexpr std::uint32_t allFlatMapInput = 0x07;
+    constexpr std::uint32_t allVRMapInput   = 0x1F;
 
     namespace Native
     {
@@ -32,11 +35,16 @@ namespace
         // Disabling also clears the look handler state, matching vanilla's cleanup.
         using SetInputHandlersEnabledFn = void (*)(RE::MapMenu*, bool, std::uint32_t);
         REL::Relocation<SetInputHandlersEnabledFn> setInputHandlersEnabled{};
+
+        // VR selection disables targeting while a dialog is open.
+        // The native confirmation callback restores it for No and Place Marker.
+        using SetMarkerInteractionEnabledFn = void (*)(bool);
+        REL::Relocation<SetMarkerInteractionEnabledFn> setMarkerInteractionEnabled{};
     }
 
     // Native button handling expects this layout in SE 1.5.97 and the supported AE runtimes.
     // Retain the saved cursor for Place Marker and delegate all responses.
-    class TravelConfirmation final : public RE::IMessageBoxCallback
+    class TravelConfirmation : public RE::IMessageBoxCallback
     {
     public:
         TravelConfirmation(RE::MapMenu* menu, float x, float y) :
@@ -67,6 +75,20 @@ namespace
     // It is not independent proof of compatibility with other runtimes.
     static_assert(sizeof(TravelConfirmation) == 0x20);
 
+    // VR's native response handler reads the saved placement point at +0x20.
+    // Inherit the common response logging and native Run delegation.
+    class VRTravelConfirmation final : public TravelConfirmation
+    {
+    public:
+        VRTravelConfirmation(RE::MapMenu* menu, float x, float y, const RE::NiPoint3& position) :
+            TravelConfirmation(menu, x, y), worldPosition(position)
+        {}
+
+        RE::NiPoint3 worldPosition;  // 20
+        std::uint32_t padding = 0;   // 2C
+    };
+    static_assert(sizeof(VRTravelConfirmation) == 0x30);
+
     bool FormatPrompt(const char* prompt, const char* label, RE::BSString& message)
     {
         // Format the engine prompt using its %s placeholder.
@@ -93,15 +115,27 @@ namespace TravelDialog
 {
     void ResolveNativeFunctions()
     {
+        if (REL::Module::IsVR()) {
+            Native::setMarkerInteractionEnabled = REL::Offset(0x91BFF0);
+        }
         Native::runTravelConfirmation   = REL::RelocationID(52236, 53127);
-        Native::setInputHandlersEnabled = REL::RelocationID(52213, 53100);
+        Native::setInputHandlersEnabled = REL::VariantID(52213, 53100, 0x916830);
     }
 
     void SuspendMapInput(RE::MapMenu* menu)
     {
         // Use only after a dialog was successfully queued, if full locking is desired.
-        Native::setInputHandlersEnabled(menu, false, allMapInput);
-        menu->GetRuntimeData2()->controlsReady = false;
+        Native::setInputHandlersEnabled(menu, false, REL::Module::IsVR() ? allVRMapInput : allFlatMapInput);
+        if (REL::Module::IsVR()) {
+            auto* data = menu->GetVRRuntimeData2();
+            data->controlsReady = false;
+            if (data->crosshairParent) {
+                data->crosshairParent->GetFlags().set(RE::NiAVObject::Flag::kHidden);
+            }
+            Native::setMarkerInteractionEnabled(false);
+        } else {
+            menu->GetRuntimeData2()->controlsReady = false;
+        }
     }
 
     void RestoreMapInput(RE::MapMenu* menu)
@@ -109,13 +143,27 @@ namespace TravelDialog
         // Pair with SuspendMapInput when cancelling a locked dialog.
         // Yes closes the map through native travel instead.
         // The caller must ensure it is open.
-        Native::setInputHandlersEnabled(menu, true, allMapInput);
-        menu->GetRuntimeData2()->controlsReady = true;
+        Native::setInputHandlersEnabled(menu, true, REL::Module::IsVR() ? allVRMapInput : allFlatMapInput);
+        if (REL::Module::IsVR()) {
+            auto* data = menu->GetVRRuntimeData2();
+            data->controlsReady = true;
+            if (data->crosshairParent) {
+                data->crosshairParent->GetFlags().reset(RE::NiAVObject::Flag::kHidden);
+            }
+            Native::setMarkerInteractionEnabled(true);
+        } else {
+            menu->GetRuntimeData2()->controlsReady = true;
+        }
     }
 
     // Dialog ownership, localized text, and native button handling live here.
-    bool Show(RE::MapMenu* menu, const RE::MapMenuMarker& marker)
+    bool Show(RE::MapMenu* menu, const RE::MapMenuMarker& marker, const RE::NiPoint3* placementPosition)
     {
+        if (REL::Module::IsVR() && !placementPosition) {
+            SKSE::log::error("VR travel confirmation requires the saved world placement position.");
+            return false;
+        }
+
         // Save the screen cursor for native Place Marker handling.
         auto* cursor = RE::MenuCursor::GetSingleton();
 
@@ -148,13 +196,23 @@ namespace TravelDialog
         // Allocate with Skyrim's heap, then construct our C++ object there.
         // construct_at initializes an object in existing storage; it does not allocate a second object.
         // Coordinates are screen positions, separate from the selected travel destination.
-        auto* storage = RE::malloc<TravelConfirmation>();
-        if (!storage) {
+        TravelConfirmation* nativeLayout = nullptr;
+        const auto& position = cursor->GetRuntimeData();
+        if (REL::Module::IsVR()) {
+            auto* storage = RE::malloc<VRTravelConfirmation>();
+            if (storage) {
+                nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY, *placementPosition);
+            }
+        } else {
+            auto* storage = RE::malloc<TravelConfirmation>();
+            if (storage) {
+                nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY);
+            }
+        }
+        if (!nativeLayout) {
             SKSE::log::error("Could not allocate the travel confirmation callback.");
             return false;
         }
-        const auto& position = cursor->GetRuntimeData();
-        auto* nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY);
 
         // The smart pointer acquires one intrusive reference.
         // Native Create retains its own reference and copies the message/buttons.
@@ -164,7 +222,7 @@ namespace TravelDialog
 
         // The engine can decline to create the dialog.
         // Unlike blindly suspending input, the failure path leaves controls alone and lets MarkerClick clear the pending destination handle.
-        if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, menuDepth, buttons)) {
+        if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, REL::Module::IsVR() ? 5 : menuDepth, buttons)) {
             SKSE::log::warn("Native message-box creation declined travel confirmation.");
             return false;
         }

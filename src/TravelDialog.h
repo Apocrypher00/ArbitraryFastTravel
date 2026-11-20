@@ -15,5 +15,6 @@ namespace TravelDialog
 
     // The caller has already selected and validated the destination handle.
     // Return false if no confirmation was queued, so the caller can clear it.
-    bool Show(RE::MapMenu* menu, const RE::MapMenuMarker& marker);
+    // VR callers also supply the current world-space placement point for Place Marker.
+    bool Show(RE::MapMenu* menu, const RE::MapMenuMarker& marker, const RE::NiPoint3* placementPosition = nullptr);
 }
