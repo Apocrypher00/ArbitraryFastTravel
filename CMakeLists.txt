@@ -21,7 +21,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(ENABLE_SKYRIM_SE ON CACHE BOOL "" FORCE)
 set(ENABLE_SKYRIM_AE ON CACHE BOOL "" FORCE)
-set(ENABLE_SKYRIM_VR OFF CACHE BOOL "" FORCE)
+set(ENABLE_SKYRIM_VR ON CACHE BOOL "" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(extern/CommonLibVR)
@@ -30,10 +30,12 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake
 
 # CommonLib generates the SKSE plugin metadata from this runtime list.
 # Native boundaries and callback layouts were compared across these runtimes.
-# These versions passed the shared map-selection and custom-travel smoke test.
+# Flat versions passed the shared map-selection and custom-travel smoke test.
+# VR 1.4.15 is enabled for the initial development test.
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES
+        1.4.15.0
         1.5.97.0
         1.6.318.0
         1.6.323.0

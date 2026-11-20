@@ -21,8 +21,8 @@ namespace
     // Bits from low to high select zoom, look, movement, click, and touchpad.
     // Flat 0x07 = 0b00111 selects the first three handlers.
     // VR   0x1F = 0b11111 selects all five handlers.
-    constexpr std::uint32_t allFlatMapInput = 0x07;
-    constexpr std::uint32_t allVRMapInput   = 0x1F;
+    constexpr std::uint32_t allMapInputFlat = 0x07;
+    constexpr std::uint32_t allMapInputVR   = 0x1F;
 
     namespace Native
     {
@@ -77,17 +77,32 @@ namespace
 
     // VR's native response handler reads the saved placement point at +0x20.
     // Inherit the common response logging and native Run delegation.
-    class VRTravelConfirmation final : public TravelConfirmation
+    class TravelConfirmationVR final : public TravelConfirmation
     {
     public:
-        VRTravelConfirmation(RE::MapMenu* menu, float x, float y, const RE::NiPoint3& position) :
+        TravelConfirmationVR(RE::MapMenu* menu, float x, float y, const RE::NiPoint3& position) :
             TravelConfirmation(menu, x, y), worldPosition(position)
         {}
 
         RE::NiPoint3 worldPosition;  // 20
         std::uint32_t padding = 0;   // 2C
     };
-    static_assert(sizeof(VRTravelConfirmation) == 0x30);
+    static_assert(sizeof(TravelConfirmationVR) == 0x30);
+
+    // VR eligibility supplies refusal text to its caller. This one-button callback
+    // restores the same controls and targeting state as the native refusal dialog.
+    class RefusalConfirmationVR final : public RE::IMessageBoxCallback
+    {
+    public:
+        explicit RefusalConfirmationVR(RE::MapMenu* menu) : mapMenu(menu) { pad0C = 0; }
+        void Run(std::uint8_t) override
+        {
+            if (RE::UI::GetSingleton()->IsMenuOpen(RE::MapMenu::MENU_NAME)) {
+                TravelDialog::RestoreMapInput(mapMenu);
+            }
+        }
+        RE::MapMenu* mapMenu;
+    };
 
     bool FormatPrompt(const char* prompt, const char* label, RE::BSString& message)
     {
@@ -125,7 +140,7 @@ namespace TravelDialog
     void SuspendMapInput(RE::MapMenu* menu)
     {
         // Use only after a dialog was successfully queued, if full locking is desired.
-        Native::setInputHandlersEnabled(menu, false, REL::Module::IsVR() ? allVRMapInput : allFlatMapInput);
+        Native::setInputHandlersEnabled(menu, false, REL::Module::IsVR() ? allMapInputVR : allMapInputFlat);
         if (REL::Module::IsVR()) {
             auto* data = menu->GetVRRuntimeData2();
             data->controlsReady = false;
@@ -143,7 +158,7 @@ namespace TravelDialog
         // Pair with SuspendMapInput when cancelling a locked dialog.
         // Yes closes the map through native travel instead.
         // The caller must ensure it is open.
-        Native::setInputHandlersEnabled(menu, true, REL::Module::IsVR() ? allVRMapInput : allFlatMapInput);
+        Native::setInputHandlersEnabled(menu, true, REL::Module::IsVR() ? allMapInputVR : allMapInputFlat);
         if (REL::Module::IsVR()) {
             auto* data = menu->GetVRRuntimeData2();
             data->controlsReady = true;
@@ -154,6 +169,26 @@ namespace TravelDialog
         } else {
             menu->GetRuntimeData2()->controlsReady = true;
         }
+    }
+
+    bool ShowRefusalVR(RE::MapMenu* menu, const char* reason, const char* label)
+    {
+        // Use the native VR refusal dialog's localized button and formatting.
+        REL::Relocation<const char**> buttonText{ REL::Offset(0x1EA27B8) };
+        if (!reason || !*buttonText) { return false; }
+        RE::BSString message;
+        if (!FormatPrompt(reason, label ? GameText::WithoutIDPrefix(label) : "", message)) { return false; }
+        auto* storage = RE::malloc<RefusalConfirmationVR>();
+        if (!storage) { return false; }
+        RE::BSTSmartPointer<RE::IMessageBoxCallback> callback(std::construct_at(storage, menu));
+        RE::BSTArray<RE::BSString> buttons;
+        buttons.emplace_back(*buttonText);
+        if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, 5, buttons)) {
+            SKSE::log::warn("Native message-box creation declined travel refusal.");
+            return false;
+        }
+        SuspendMapInput(menu);
+        return true;
     }
 
     // Dialog ownership, localized text, and native button handling live here.
@@ -199,7 +234,7 @@ namespace TravelDialog
         TravelConfirmation* nativeLayout = nullptr;
         const auto& position = cursor->GetRuntimeData();
         if (REL::Module::IsVR()) {
-            auto* storage = RE::malloc<VRTravelConfirmation>();
+            auto* storage = RE::malloc<TravelConfirmationVR>();
             if (storage) {
                 nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY, *placementPosition);
             }
@@ -221,7 +256,7 @@ namespace TravelDialog
         RE::BSTSmartPointer<RE::IMessageBoxCallback> callback(nativeLayout);
 
         // The engine can decline to create the dialog.
-        // Unlike blindly suspending input, the failure path leaves controls alone and lets MarkerClick clear the pending destination handle.
+        // Unlike blindly suspending input, the failure path leaves controls alone and lets MarkerSelection clear the pending destination handle.
         if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, REL::Module::IsVR() ? 5 : menuDepth, buttons)) {
             SKSE::log::warn("Native message-box creation declined travel confirmation.");
             return false;

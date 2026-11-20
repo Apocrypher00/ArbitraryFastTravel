@@ -19,15 +19,43 @@ namespace MarkerSelectionOverride
         // CommonLib agrees on this value.
         constexpr std::uint32_t doorQuestDisplayType = 0x3F;
 
+        // The VR hook receives an engine-owned targeting record.
+        // CommonLib currently describes the map-array marker, whose fields have different offsets.
+        // This local view names the verified targeting fields and borrows their data.
+        struct MarkerInteractionRecordVR
+        {
+            bool initialized;                     // 00
+            bool inUse;                           // 01
+            std::byte padding02[6];               // 02: presumed alignment padding
+            RE::NiPointer<RE::NiNode> markerNode; // 08: node or derived billboard node
+            RE::BSTriShape* markerQuad;           // 10
+            RE::RefHandle handle;                 // 18
+            std::uint32_t displayType;            // 1C
+            std::uint32_t type;                   // 20
+            std::uint32_t padding24;              // 24: presumed alignment padding before the label
+            RE::BSFixedString label;              // 28
+            bool eligible;                        // 30
+            std::byte padding31[7];               // 31–37: presumed trailing padding to the 0x38-byte record size
+        };
+        static_assert(sizeof(MarkerInteractionRecordVR) == 0x38);
+        static_assert(offsetof(MarkerInteractionRecordVR, markerNode) == 0x08);
+        static_assert(offsetof(MarkerInteractionRecordVR, markerQuad) == 0x10);
+        static_assert(offsetof(MarkerInteractionRecordVR, handle) == 0x18);
+        static_assert(offsetof(MarkerInteractionRecordVR, label) == 0x28);
+
+        // MinHook fills these with a trampoline:
+        // a callable route to the original function after its entry has been redirected below.
         namespace Trampoline
         {
-            // MarkerClick is registered with Scaleform, Skyrim's menu system.
+            // The native Scaleform callback is registered as "MarkerClick".
             // Its single argument contains the selected marker index.
             // The function pointer below describes that callback signature, not a new travel API.
-            using MarkerClickFn = void (*)(const RE::FxDelegateArgs&);
-            // MinHook fills this with a trampoline:
-            // a callable route to the original function after its entry has been redirected to MarkerClick below.
-            MarkerClickFn markerClick = nullptr;
+            using MarkerSelectionFn = void (*)(const RE::FxDelegateArgs&);
+            MarkerSelectionFn markerSelection = nullptr;
+
+            // VR passes the targeted record directly to its selection function.
+            using MarkerSelectionFnVR = void (*)(const MarkerInteractionRecordVR*);
+            MarkerSelectionFnVR markerSelectionVR = nullptr;
         }
 
         namespace Native
@@ -47,20 +75,27 @@ namespace MarkerSelectionOverride
             using HasCruiseMountStateFn = bool (*)(RE::PlayerCharacter*);
             REL::Relocation<HasCruiseMountStateFn> hasCruiseMountState{};
 
-            // SE39641/AE40728 reads the cruise setting used by vanilla MarkerClick.
+            // SE39641/AE40728 reads the cruise setting used by vanilla MarkerSelection.
             // Enabled/disabled dragon tests established its role in that combined condition.
             using IsCruiseEnabledFn = bool (*)();
             REL::Relocation<IsCruiseEnabledFn> isCruiseEnabled{};
 
             // SE39372/AE40444 applies player restrictions such as combat, weight, and disabled travel.
-            // Vanilla MarkerClick passes false and native refusal messages are shown.
+            // Vanilla MarkerSelection passes false and native refusal messages are shown.
             // The mode argument's full semantics are not named; this is not a height check.
             using CanFastTravelFn = bool (*)(RE::PlayerCharacter*, bool);
             REL::Relocation<CanFastTravelFn> canFastTravel{};
 
+            // VR returns a localized refusal format through a writable pointer.
+            // Call the original engine entry so restriction mods can intercept it.
+            using CanFastTravelFnVR = bool (*)(RE::PlayerCharacter*, const char**);
+            REL::Relocation<CanFastTravelFnVR> canFastTravelVR{};
+            REL::Relocation<RE::MapMenu**> mapMenuVR{};
+            REL::Relocation<RE::NiPoint3*> placementPositionVR{};
+
             // SE20109/AE20558 checks destination XY against border regions when enabled by the world.
             // It does not establish terrain height and requires a non-null worldspace.
-            // Vanilla uses this in its custom dragon-cruising path, which we delegate to Trampoline::markerClick.
+            // Vanilla uses this in its custom dragon-cruising path, which we delegate to Trampoline::markerSelection.
             // Retained for reference; AFT's ordinary fast-travel path does not call this helper.
             [[maybe_unused]] bool IsPositionWithinBorders(RE::TESWorldSpace* world, const RE::NiPoint3* position)
             {
@@ -126,56 +161,32 @@ namespace MarkerSelectionOverride
             return extra && extra->mapData && extra->mapData->flags.any(RE::MapMarkerData::Flag::kCanTravelTo);
         }
 
-        // Whole-function detour boundary.
-        // We do not patch individual instructions or temporarily change marker types.
         // Expand regular undiscovered, quest, and custom destination eligibility.
         // Vanilla mount cruising retains the entire original selection path.
-        void MarkerClick(const RE::FxDelegateArgs& args)
+        // Return false when the hook should hand this selection to its original function.
+        // True means AFT consumed it, including a native restriction refusal.
+        bool ProcessMarker(RE::MapMenu* menu, const RE::MapMenuMarker& marker, const RE::NiPoint3* placementPosition = nullptr, std::uint32_t cachedDisplayType = 0)
         {
-            // Start a new log group even for clicks delegated entirely to vanilla.
-            SKSE::log::info("MarkerClick: begin (arguments={}).", args.GetArgCount());
-
-            // FxDelegateArgs exposes the originating handler, which is MapMenu for this registered callback.
-            // Reject malformed arguments before indexing the marker array; vanilla's callback assumes valid UI data.
-            auto* menu = static_cast<RE::MapMenu*>(args.GetHandler());
-            if (!menu || args.GetArgCount() != 1 || !args[0].IsNumber()) {
-                SKSE::log::warn("Ignored invalid MarkerClick arguments.");
-                return;
-            }
-            auto* data = menu->GetRuntimeData2();
-
-            // Scaleform represents numbers as doubles.
-            // Ensure this is a finite, nonnegative integer within the array before converting to size_t.
-            // These checks are defensive glue, not fast-travel eligibility rules.
-            const double index = args[0].GetNumber();
-            if (!data || !std::isfinite(index) || index < 0 || std::floor(index) != index ||
-                index >= static_cast<double>(data->mapMarkers.size())) {
-                SKSE::log::warn("Ignored invalid MarkerClick index.");
-                return;
-            }
-            const auto& marker = data->mapMarkers[static_cast<std::size_t>(index)];
             const char* category = "other";
             if (marker.type == regularMarkerType) { category = "location"; }
             else if (marker.type == questMarkerType) { category = "quest"; }
             else if (marker.type == customDestinationType) { category = "custom destination"; }
 
             SKSE::log::info(
-                "MarkerClick: selected {} (index={} type={} handle={:08X}).",
-                category, index, marker.type, static_cast<std::uint32_t>(marker.ref)
+                "MarkerSelection: selected {} (type={} handle={:08X}).",
+                category, marker.type, static_cast<std::uint32_t>(marker.ref)
             );
 
             // Leave player markers and any unknown categories entirely native.
             if (marker.type != regularMarkerType && marker.type != questMarkerType && marker.type != customDestinationType) {
-                SKSE::log::info("MarkerClick: vanilla handoff (marker category is not overridden).");
-                Trampoline::markerClick(args);
-                return;
+                SKSE::log::info("MarkerSelection: vanilla handoff (marker category is not overridden).");
+                return false;
             }
 
             // Discovered locations retain their complete vanilla path regardless of configuration.
             if (marker.type == regularMarkerType && IsDiscoveredMarker(marker)) {
-                SKSE::log::info("MarkerClick: vanilla handoff (discovered location).");
-                Trampoline::markerClick(args);
-                return;
+                SKSE::log::info("MarkerSelection: vanilla handoff (discovered location).");
+                return false;
             }
 
             // Disabled categories use the complete original selection function.
@@ -186,19 +197,19 @@ namespace MarkerSelectionOverride
                 (marker.type == questMarkerType && !Config::GetAllowDirectQuestMarkers() && !Config::GetAllowDoorQuestMarkers()) ||
                 (marker.type == regularMarkerType && !Config::GetAllowUndiscoveredLocations())
              ) {
-                SKSE::log::info("MarkerClick: vanilla handoff (marker category is disabled).");
-                Trampoline::markerClick(args);
-                return;
+                SKSE::log::info("MarkerSelection: vanilla handoff (marker category is disabled).");
+                return false;
             }
 
             // Vanilla resolves quest selections to a regular marker with the same handle.
             // Preserve that behavior when the matching location is already travelable.
             if (marker.type == questMarkerType) {
-                for (const auto& candidate : data->mapMarkers) {
+                const auto& markers = REL::Module::IsVR() ?
+                    menu->GetVRRuntimeData2()->mapMarkers : menu->GetRuntimeData2()->mapMarkers;
+                for (const auto& candidate : markers) {
                     if (candidate.type == regularMarkerType && candidate.ref == marker.ref && IsDiscoveredMarker(candidate)) {
-                        SKSE::log::info("MarkerClick: vanilla handoff (quest target matches a discovered location).");
-                        Trampoline::markerClick(args);
-                        return;
+                        SKSE::log::info("MarkerSelection: vanilla handoff (quest target matches a discovered location).");
+                        return false;
                     }
                 }
             }
@@ -207,9 +218,8 @@ namespace MarkerSelectionOverride
             // Mount state alone is insufficient: cruise must also be enabled.
             auto* player = RE::PlayerCharacter::GetSingleton();
             if (player && Native::hasCruiseMountState(player) && Native::isCruiseEnabled()) {
-                SKSE::log::info("MarkerClick: vanilla handoff (native mount cruising).");
-                Trampoline::markerClick(args);
-                return;
+                SKSE::log::info("MarkerSelection: vanilla handoff (native mount cruising).");
+                return false;
             }
 
             // Resolve the existing marker's engine handle to its real reference.
@@ -220,7 +230,7 @@ namespace MarkerSelectionOverride
             // Reuse the game's quest display classification before changing the selected destination.
             // A disabled category defers to vanilla; neither the marker nor its reference is modified.
             if (marker.type == questMarkerType) {
-                const auto displayType = Native::getDisplayType(&marker);
+                const auto displayType = REL::Module::IsVR() ? cachedDisplayType : Native::getDisplayType(&marker);
                 const bool doorRouted = displayType == doorQuestDisplayType;
                 const bool enabled = doorRouted ? Config::GetAllowDoorQuestMarkers() : Config::GetAllowDirectQuestMarkers();
                 SKSE::log::debug(
@@ -229,9 +239,8 @@ namespace MarkerSelectionOverride
                     destination ? destination->GetFormID() : 0
                 );
                 if (!enabled || !destination) {
-                    SKSE::log::info("MarkerClick: vanilla handoff (quest category is disabled or its reference is unresolved).");
-                    Trampoline::markerClick(args);
-                    return;
+                    SKSE::log::info("MarkerSelection: vanilla handoff (quest category is disabled or its reference is unresolved).");
+                    return false;
                 }
             }
 
@@ -241,7 +250,7 @@ namespace MarkerSelectionOverride
             // Vanilla clears MapMenu.mapMarker before processing a selection.
             // This is the handle the native confirmation/travel code later reads;
             // it is not the player's persistent custom-marker field.
-            auto& selectedDestination = menu->GetRuntimeData()->mapMarker;
+            auto& selectedDestination = REL::Module::IsVR() ? menu->GetVRRuntimeData()->mapMarker : menu->GetRuntimeData()->mapMarker;
             selectedDestination.reset();
 
             // Ordinary fast travel needs a player and destination, but not the player's current worldspace.
@@ -249,19 +258,24 @@ namespace MarkerSelectionOverride
             // including changes made by restriction-removal mods such as Unlimited Fast Travel.
             if (!player || !destination) {
                 SKSE::log::warn(
-                    "MarkerClick: stopped before confirmation (playerPresent={} destinationResolved={} type={} handle={:08X}).",
+                    "MarkerSelection: stopped before confirmation (playerPresent={} destinationResolved={} type={} handle={:08X}).",
                     player != nullptr, static_cast<bool>(destination),
                     marker.type, static_cast<std::uint32_t>(marker.ref)
                 );
-                return;
+                return true;
             }
 
             // Vanilla checks custom destination borders only in its dragon-cruising selection path.
-            // That path is handled by Trampoline::markerClick above, retaining its native border check.
+            // That path is handled by Trampoline::markerSelection above, retaining its native border check.
             // Apply the ordinary native restrictions here without adding a separate border requirement.
-            if (!Native::canFastTravel(player, false)) {
-                SKSE::log::info("MarkerClick: travel refused by native restrictions; Skyrim displays the reason in-game (type={}).", marker.type);
-                return;
+            const char* refusalText = nullptr;
+            const bool allowed = REL::Module::IsVR() ? Native::canFastTravelVR(player, &refusalText) : Native::canFastTravel(player, false);
+            if (!allowed) {
+                if (REL::Module::IsVR() && refusalText) {
+                    TravelDialog::ShowRefusalVR(menu, refusalText, marker.customMarker);
+                }
+                SKSE::log::info("MarkerSelection: travel refused by native restrictions (type={}).", marker.type);
+                return true;
             }
 
             if (marker.type == questMarkerType && spdlog::default_logger()->should_log(spdlog::level::debug)) {
@@ -274,24 +288,83 @@ namespace MarkerSelectionOverride
 
             // If no dialog is queued, discard the handle.
             // Input has not been suspended, so there is no callback-dependent recovery to perform.
-            if (!TravelDialog::Show(menu, marker)) {
-                SKSE::log::info("MarkerClick: stopped (travel confirmation was not queued).");
+            if (!TravelDialog::Show(menu, marker, placementPosition)) {
+                SKSE::log::info("MarkerSelection: stopped (travel confirmation was not queued).");
                 selectedDestination.reset();
-                return;
+                return true;
             }
             SKSE::log::info(
-                "MarkerClick: AFT opened travel confirmation: type={} handle={:08X} form={:08X}.",
+                "MarkerSelection: AFT opened travel confirmation: type={} handle={:08X} form={:08X}.",
                 marker.type, static_cast<std::uint32_t>(marker.ref), destination->GetFormID()
             );
+            return true;
+        }
+
+        void MarkerSelection(const RE::FxDelegateArgs& args)
+        {
+            // Start a new log group even for clicks delegated entirely to vanilla.
+            SKSE::log::info("MarkerSelection: begin (arguments={}).", args.GetArgCount());
+
+            // FxDelegateArgs exposes the originating handler, which is MapMenu for this registered callback.
+            // Reject malformed arguments before indexing the marker array; vanilla's callback assumes valid UI data.
+            auto* menu = static_cast<RE::MapMenu*>(args.GetHandler());
+            if (!menu || args.GetArgCount() != 1 || !args[0].IsNumber()) {
+                SKSE::log::warn("Ignored invalid MarkerSelection arguments.");
+                return;
+            }
+            auto* data = menu->GetRuntimeData2();
+
+            // Scaleform represents numbers as doubles.
+            // Ensure this is a finite, nonnegative integer within the array before converting to size_t.
+            // These checks are defensive glue, not fast-travel eligibility rules.
+            const double index = args[0].GetNumber();
+            if (!data || !std::isfinite(index) || index < 0 || std::floor(index) != index ||
+                index >= static_cast<double>(data->mapMarkers.size())) {
+                SKSE::log::warn("Ignored invalid MarkerSelection index.");
+                return;
+            }
+            const auto& marker = data->mapMarkers[static_cast<std::size_t>(index)];
+            SKSE::log::info("MarkerSelection: selected index={}.", index);
+            if (!ProcessMarker(menu, marker)) {
+                Trampoline::markerSelection(args);
+            }
+        }
+
+        void MarkerSelectionVR(const MarkerInteractionRecordVR* record)
+        {
+            SKSE::log::info("MarkerSelection: begin (VR selection).");
+            auto* menu = *Native::mapMenuVR;
+            if (!menu || !record) {
+                SKSE::log::warn("Ignored invalid VR marker selection.");
+                return;
+            }
+
+            // Adapt only the selected data.
+            // The engine's interaction record is borrowed.
+            // Its cached display type preserves direct/door classification for quest targets.
+            RE::MapMenuMarker marker{};
+            marker.ref          = record->handle;
+            marker.type         = record->type;
+            marker.customMarker = record->label.c_str();
+            const auto position = *Native::placementPositionVR;
+            if (!ProcessMarker(menu, marker, &position, record->displayType)) {
+                Trampoline::markerSelectionVR(record);
+            }
         }
     }
 
     void ResolveNativeFunctions()
     {
-        Native::getDisplayType      = REL::RelocationID(52190, 53082);
+        Native::getDisplayType      = REL::VariantID(52190, 53082, 0x9140A0);
         Native::hasCruiseMountState = REL::RelocationID(36877, 37901);
-        Native::isCruiseEnabled     = REL::RelocationID(39641, 40728);
-        Native::canFastTravel       = REL::RelocationID(39372, 40444);
+        Native::isCruiseEnabled     = REL::VariantID(39641, 40728, 0x6D9690);
+        if (REL::Module::IsVR()) {
+            Native::canFastTravelVR     = REL::ID(39372);
+            Native::mapMenuVR           = REL::Offset(0x3014518);
+            Native::placementPositionVR = REL::Offset(0x30A6FD0);
+        } else {
+            Native::canFastTravel = REL::RelocationID(39372, 40444);
+        }
     }
 
     bool CreateHook()
@@ -299,11 +372,20 @@ namespace MarkerSelectionOverride
         // This feature owns the engine target and function signature.
         // Creation prepares the original trampoline but does not yet activate the detour.
         // plugin.cpp enables the prepared hooks, or resets them if setup fails.
-        return Hooks::Create(
-            "MarkerClick",
-            REL::RelocationID(52208, 53095),
-            MarkerClick,
-            Trampoline::markerClick
-        );
+        if (!REL::Module::IsVR()) {
+            return Hooks::Create(
+                "MarkerSelection",
+                REL::RelocationID(52208, 53095),
+                MarkerSelection,
+                Trampoline::markerSelection
+            );
+        } else {
+            return Hooks::Create(
+                "MarkerSelectionVR",
+                REL::ID(52208),
+                MarkerSelectionVR,
+                Trampoline::markerSelectionVR
+            );
+        }
     }
 }
