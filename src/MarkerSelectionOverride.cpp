@@ -224,10 +224,16 @@ namespace MarkerSelectionOverride
             const char* refusalText = nullptr;
             const bool allowed = REL::Module::IsVR() ? Native::canFastTravelVR(player, &refusalText) : Native::canFastTravel(player, false);
             if (!allowed) {
-                if (REL::Module::IsVR() && refusalText) {
-                    TravelDialog::ShowRefusalVR(menu, refusalText, marker.customMarker);
-                }
                 SKSE::log::info("MarkerSelection: travel refused by native restrictions (type={}).", marker.type);
+                if (REL::Module::IsVR()) {
+                    if (!refusalText) {
+                        SKSE::log::warn("MarkerSelection: no refusal dialog queued because native restrictions supplied no reason.");
+                    } else if (TravelDialog::ShowRefusalVR(menu, refusalText, marker.customMarker)) {
+                        SKSE::log::info("MarkerSelection: refusal dialog queued (reason=\"{}\").", refusalText);
+                    } else {
+                        SKSE::log::warn("MarkerSelection: refusal dialog could not be queued (reason=\"{}\").", refusalText);
+                    }
+                }
                 return true;
             }
 
