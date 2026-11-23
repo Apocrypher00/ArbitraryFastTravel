@@ -355,9 +355,9 @@ namespace MarkerSelectionOverride
 
     void ResolveNativeFunctions()
     {
-        Native::getDisplayType      = REL::VariantID(52190, 53082, 0x9140A0);
+        Native::getDisplayType      = REL::RelocationID(52190, 53082);
         Native::hasCruiseMountState = REL::RelocationID(36877, 37901);
-        Native::isCruiseEnabled     = REL::VariantID(39641, 40728, 0x6D9690);
+        Native::isCruiseEnabled     = REL::RelocationID(39641, 40728);
         if (REL::Module::IsVR()) {
             Native::canFastTravelVR     = REL::ID(39372);
             Native::mapMenuVR           = REL::Offset(0x3014518);

@@ -134,7 +134,7 @@ namespace TravelDialog
             Native::setMarkerInteractionEnabled = REL::Offset(0x91BFF0);
         }
         Native::runTravelConfirmation   = REL::RelocationID(52236, 53127);
-        Native::setInputHandlersEnabled = REL::VariantID(52213, 53100, 0x916830);
+        Native::setInputHandlersEnabled = REL::RelocationID(52213, 53100);
     }
 
     void SuspendMapInput(RE::MapMenu* menu)

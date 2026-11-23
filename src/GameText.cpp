@@ -18,10 +18,10 @@ namespace GameText
     void ResolveNativeFunctions()
     {
         // IDs are paired as SE, AE, matching native localized text storage.
-        yesText              = REL::VariantID(506336, 376286, 0x1EA27D0);
-        noText               = REL::VariantID(506338, 376289, 0x1EA27E8);
-        placeMarkerText      = REL::VariantID(507160, 377924, 0x1EA5C98);
-        fastTravelPromptText = REL::VariantID(506680, 377027, 0x1EA3EF8);
+        yesText              = REL::RelocationID(506336, 376286);
+        noText               = REL::RelocationID(506338, 376289);
+        placeMarkerText      = REL::RelocationID(507160, 377924);
+        fastTravelPromptText = REL::RelocationID(506680, 377027);
     }
 
     // Borrow existing engine text rather than performing translation lookups.

@@ -46,6 +46,7 @@ For plugin developers: AFT detours the native map menu's `MarkerClick` callback 
 
 - [SKSE64](https://skse.silverlock.org/), matching your Skyrim runtime.
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching your runtime.
+- VR development builds require [VR Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/58101) **0.309.0 or newer**.
 - [Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
 
 CommonLibSSE-NG, MinHook, and the other build dependencies are linked into the plugin; users do not install them separately.
