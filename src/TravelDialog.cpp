@@ -18,6 +18,7 @@ namespace
     // Preserve vanilla travel dialog parameters; CommonLib exposes no named warning enum.
     constexpr std::int32_t warningType = 0x19;
     constexpr std::int32_t menuDepth   = 4;
+    constexpr std::int32_t menuDepthVR = 5;
 
     namespace Native
     {
@@ -75,8 +76,8 @@ namespace
     };
     static_assert(sizeof(TravelConfirmationVR) == 0x30);
 
-    // VR eligibility supplies refusal text to its caller. This one-button callback
-    // restores the same controls and targeting state as the native refusal dialog.
+    // VR eligibility supplies refusal text to its caller.
+    // This one-button callback restores the same controls and targeting state as the native refusal dialog.
     class RefusalConfirmationVR final : public RE::IMessageBoxCallback
     {
     public:
@@ -116,25 +117,39 @@ namespace TravelDialog
 {
     void ResolveNativeFunctions()
     {
-        Native::runTravelConfirmation   = REL::RelocationID(52236, 53127);
+        Native::runTravelConfirmation = REL::RelocationID(52236, 53127);
     }
 
     bool ShowRefusalVR(RE::MapMenu* menu, const char* reason, const char* label)
     {
-        // Use the native VR refusal dialog's localized button and formatting.
-        REL::Relocation<const char**> buttonText{ REL::Offset(0x1EA27B8) };
-        if (!reason || !*buttonText) { return false; }
+        // Read the same localized button text used by the native VR refusal dialog.
+        REL::Relocation<const char**> refusalButtonText{ REL::Offset(0x1EA27B8) };
+        const char* buttonLabel = *refusalButtonText;
+        if (!reason || !buttonLabel) { return false; }
+
+        // The refusal reason can contain a placeholder for the destination label.
+        const char* destinationLabel = label ? GameText::WithoutIDPrefix(label) : "";
         RE::BSString message;
-        if (!FormatPrompt(reason, label ? GameText::WithoutIDPrefix(label) : "", message)) { return false; }
+        if (!FormatPrompt(reason, destinationLabel, message)) { return false; }
+
+        // Allocate on Skyrim's heap and initialize the callback that restores input.
         auto* storage = RE::malloc<RefusalConfirmationVR>();
         if (!storage) { return false; }
-        RE::BSTSmartPointer<RE::IMessageBoxCallback> callback(std::construct_at(storage, menu));
+
+        auto* refusalCallback = std::construct_at(storage, menu);
+        RE::BSTSmartPointer<RE::IMessageBoxCallback> callback(refusalCallback);
+
+        // Create retains the callback and copies the message and button text.
         RE::BSTArray<RE::BSString> buttons;
-        buttons.emplace_back(*buttonText);
-        if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, 5, buttons)) {
+        buttons.emplace_back(buttonLabel);
+
+        const bool queued = RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, menuDepthVR, buttons);
+        if (!queued) {
             SKSE::log::warn("Native message-box creation declined travel refusal.");
             return false;
         }
+
+        // Suspend only after the dialog is queued. Its callback restores input.
         MapInput::Suspend(menu);
         return true;
     }
@@ -205,7 +220,7 @@ namespace TravelDialog
 
         // The engine can decline to create the dialog.
         // Unlike blindly suspending input, the failure path leaves controls alone and lets MarkerSelection clear the pending destination handle.
-        if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, REL::Module::IsVR() ? 5 : menuDepth, buttons)) {
+        if (!RE::MessageBoxMenu::Create(message, callback, buttonPressOffset, warningType, REL::Module::IsVR() ? menuDepthVR : menuDepth, buttons)) {
             SKSE::log::warn("Native message-box creation declined travel confirmation.");
             return false;
         }
