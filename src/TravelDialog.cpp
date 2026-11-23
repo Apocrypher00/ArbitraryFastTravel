@@ -123,7 +123,7 @@ namespace TravelDialog
     bool ShowRefusalVR(RE::MapMenu* menu, const char* reason, const char* label)
     {
         // Read the same localized button text used by the native VR refusal dialog.
-        const char* buttonLabel = GameText::Ok();
+        const char* buttonLabel = GameText::GetSettingText("sOk");
         if (!reason || !buttonLabel) { return false; }
 
         // The refusal reason can contain a placeholder for the destination label.
@@ -164,11 +164,11 @@ namespace TravelDialog
         // Save the screen cursor for native Place Marker handling.
         auto* cursor = RE::MenuCursor::GetSingleton();
 
-        // Use the same localized text as the native three-button dialog.
-        const auto* yes         = GameText::Yes();
-        const auto* no          = GameText::No();
-        const auto* prompt      = GameText::FastTravelPrompt();
-        const auto* placeMarker = GameText::PlaceMarker();
+        // The native dialog uses these named game settings for its localized text.
+        const auto* yes         = GameText::GetSettingText("sYes");
+        const auto* no          = GameText::GetSettingText("sNo");
+        const auto* prompt      = GameText::GetSettingText("sFastTravelConfirm");
+        const auto* placeMarker = GameText::GetSettingText("sPlaceMarker");
 
         // Match native display-name selection: a location name if present, otherwise the marker label.
         const auto* label = marker.fullName ? marker.fullName->fullName.c_str() : marker.customMarker;
