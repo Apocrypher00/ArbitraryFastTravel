@@ -91,6 +91,28 @@ namespace
         RE::MapMenu* mapMenu;
     };
 
+    RE::BSTSmartPointer<RE::IMessageBoxCallback> CreateTravelCallback(RE::MapMenu* menu, const RE::MenuCursor::RUNTIME_DATA& cursorPosition, const RE::NiPoint3* placementPosition)
+    {
+        // Construct the runtime-specific layout on Skyrim's heap.
+        // Show validates the VR placement point before calling this helper.
+        TravelConfirmation* nativeLayout = nullptr;
+        if (REL::Module::IsVR()) {
+            auto* storage = RE::malloc<TravelConfirmationVR>();
+            if (storage) {
+                nativeLayout = std::construct_at(storage, menu, cursorPosition.cursorPosX, cursorPosition.cursorPosY, *placementPosition);
+            }
+        } else {
+            auto* storage = RE::malloc<TravelConfirmation>();
+            if (storage) {
+                nativeLayout = std::construct_at(storage, menu, cursorPosition.cursorPosX, cursorPosition.cursorPosY);
+            }
+        }
+
+        // An empty pointer reports allocation failure.
+        // Otherwise this acquires one reference; the native dialog retains its own reference when queued.
+        return RE::BSTSmartPointer<RE::IMessageBoxCallback>(nativeLayout);
+    }
+
     bool FormatPrompt(const char* prompt, const char* label, RE::BSString& message)
     {
         // Format the engine prompt using its %s placeholder.
@@ -190,32 +212,11 @@ namespace TravelDialog
         buttons.emplace_back(no);
         buttons.emplace_back(placeMarker);
 
-        // Allocate with Skyrim's heap, then construct our C++ object there.
-        // construct_at initializes an object in existing storage; it does not allocate a second object.
-        // Coordinates are screen positions, separate from the selected travel destination.
-        TravelConfirmation* nativeLayout = nullptr;
-        const auto& position = cursor->GetRuntimeData();
-        if (REL::Module::IsVR()) {
-            auto* storage = RE::malloc<TravelConfirmationVR>();
-            if (storage) {
-                nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY, *placementPosition);
-            }
-        } else {
-            auto* storage = RE::malloc<TravelConfirmation>();
-            if (storage) {
-                nativeLayout = std::construct_at(storage, menu, position.cursorPosX, position.cursorPosY);
-            }
-        }
-        if (!nativeLayout) {
+        auto callback = CreateTravelCallback(menu, cursor->GetRuntimeData(), placementPosition);
+        if (!callback) {
             SKSE::log::error("Could not allocate the travel confirmation callback.");
             return false;
         }
-
-        // The smart pointer acquires one intrusive reference.
-        // Native Create retains its own reference and copies the message/buttons.
-        // Our local owners may therefore go away safely when this function returns.
-        // On failure, releasing this local pointer destroys the wrapper.
-        RE::BSTSmartPointer<RE::IMessageBoxCallback> callback(nativeLayout);
 
         // The engine can decline to create the dialog.
         // Unlike blindly suspending input, the failure path leaves controls alone and lets MarkerSelection clear the pending destination handle.
