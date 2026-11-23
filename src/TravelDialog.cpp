@@ -123,8 +123,7 @@ namespace TravelDialog
     bool ShowRefusalVR(RE::MapMenu* menu, const char* reason, const char* label)
     {
         // Read the same localized button text used by the native VR refusal dialog.
-        REL::Relocation<const char**> refusalButtonText{ REL::Offset(0x1EA27B8) };
-        const char* buttonLabel = *refusalButtonText;
+        const char* buttonLabel = GameText::Ok();
         if (!reason || !buttonLabel) { return false; }
 
         // The refusal reason can contain a placeholder for the destination label.

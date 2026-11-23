@@ -5,30 +5,24 @@
 
 namespace
 {
-    // Resolve storage addresses at startup; read the engine's current text only when needed.
-    REL::Relocation<const char**> yesText{};
-    REL::Relocation<const char**> noText{};
-    REL::Relocation<const char**> placeMarkerText{};
-    REL::Relocation<const char**> fastTravelPromptText{};
-
+    // Query when the dialog is requested, after Skyrim has loaded its game settings.
+    const char* GetSettingText(const char* name)
+    {
+        auto* settings = RE::GameSettingCollection::GetSingleton();
+        const auto* setting = settings ? settings->GetSetting(name) : nullptr;
+        return setting ? setting->GetString() : nullptr;
+    }
 }
 
 namespace GameText
 {
-    void ResolveNativeFunctions()
-    {
-        // IDs are paired as SE, AE, matching native localized text storage.
-        yesText              = REL::RelocationID(506336, 376286);
-        noText               = REL::RelocationID(506338, 376289);
-        placeMarkerText      = REL::RelocationID(507160, 377924);
-        fastTravelPromptText = REL::RelocationID(506680, 377027);
-    }
-
-    // Borrow existing engine text rather than performing translation lookups.
-    const char* Yes()              { return *yesText; }
-    const char* No()               { return *noText; }
-    const char* PlaceMarker()      { return *placeMarkerText; }
-    const char* FastTravelPrompt() { return *fastTravelPromptText; }
+    // Skyrim stores these localized button labels and the travel prompt as named game settings.
+    // Read their current values when building the dialog.
+    const char* Yes()              { return GetSettingText("sYes"); }
+    const char* No()               { return GetSettingText("sNo"); }
+    const char* Ok()               { return GetSettingText("sOk"); }
+    const char* PlaceMarker()      { return GetSettingText("sPlaceMarker"); }
+    const char* FastTravelPrompt() { return GetSettingText("sFastTravelConfirm"); }
 
     const char* WithoutIDPrefix(const char* text)
     {

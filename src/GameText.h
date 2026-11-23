@@ -2,14 +2,13 @@
 
 namespace GameText
 {
-    // Resolve required native addresses after SKSE initialization and before enabling hooks.
-    void ResolveNativeFunctions();
-
     // Borrow localized text already held by the engine; do not free these pointers.
     const char* Yes();
     const char* No();
     const char* PlaceMarker();
     const char* FastTravelPrompt();
+
+    const char* Ok();
 
     // Return the label after its optional native ID prefix, without copying it.
     // Input must be a valid engine-created label, including the full ID field.
