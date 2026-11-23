@@ -52,6 +52,7 @@ add_commonlibsse_plugin(${PROJECT_NAME}
         src/plugin.cpp
         src/Hooks.cpp
         src/MarkerSelectionOverride.cpp
+        src/MapInput.cpp
         src/TravelDialog.cpp
         src/GameText.cpp
         src/Config.cpp

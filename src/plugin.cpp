@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "TravelDialog.h"
 #include "GameText.h"
+#include "MapInput.h"
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
 {
@@ -15,6 +16,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
 
     // Resolve directly called native functions and text storage before preparing detours.
     MarkerSelectionOverride::ResolveNativeFunctions();
+    MapInput::ResolveNativeFunctions();
     TravelDialog::ResolveNativeFunctions();
     GameText::ResolveNativeFunctions();
 
