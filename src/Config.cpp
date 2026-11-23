@@ -91,6 +91,8 @@ namespace Config
         );
     }
 
+    spdlog::level::level_enum GetLogLevel() { return logLevel; }
+
     bool GetAllowCustomDestination() { return allowCustomDestination; }
     bool GetAllowDirectQuestMarkers() { return allowDirectQuestMarkers; }
     bool GetAllowDoorQuestMarkers() { return allowDoorQuestMarkers; }

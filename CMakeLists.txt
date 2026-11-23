@@ -51,6 +51,7 @@ add_commonlibsse_plugin(${PROJECT_NAME}
     SOURCES
         src/plugin.cpp
         src/Hooks.cpp
+        src/Diagnostics.cpp
         src/MarkerSelectionOverride.cpp
         src/MapInput.cpp
         src/TravelDialog.cpp
