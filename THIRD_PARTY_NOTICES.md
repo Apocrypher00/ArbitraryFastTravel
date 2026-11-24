@@ -9,8 +9,10 @@ other third-party projects used to build or run ArbitraryFastTravel.
 
 | Project | Purpose |
 | --- | --- |
-| [SKSE64](https://skse.silverlock.org/) | Loads and provides runtime services to the plugin. |
+| [SKSE64 / SKSEVR](https://skse.silverlock.org/) | Loads and provides runtime services to the plugin. |
 | [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444) | Resolves version-specific Skyrim executable addresses. |
+
+VR uses [VR Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/58101), version 0.309.0 or newer.
 
 ## Linked and build dependencies
 

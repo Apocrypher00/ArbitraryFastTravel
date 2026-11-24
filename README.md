@@ -10,6 +10,7 @@ Supported Skyrim runtimes (Steam unless marked GOG):
 
 | Skyrim | SKSE |
 | --- | --- |
+| `1.4.15` (VR) | `2.0.12` (VR) |
 | `1.5.97` | `2.0.20` |
 | `1.6.318` | `2.1.2` |
 | `1.6.323` | `2.1.3` |
@@ -25,9 +26,10 @@ Supported Skyrim runtimes (Steam unless marked GOG):
 
 Install the SKSE build and Address Library database matching your exact Skyrim runtime.
 GOG requires the GOG SKSE build, not the Steam build with the same version number.
-The same DLL supports the listed Steam and GOG runtimes.
+VR requires SKSEVR and VR Address Library 0.309.0 or newer.
+The same DLL supports the listed Steam, GOG, and VR runtimes.
 Skyrim `1.6.317` is excluded because its matching official SKSE `2.1.0` does not load native DLL plugins.
-Other runtimes, VR, and future Skyrim updates are unsupported unless listed above.
+Other runtimes and future Skyrim updates are unsupported unless listed above.
 
 SkyUI is not required.
 
@@ -40,13 +42,13 @@ AFT expands which destinations you can select. It does not remove fast-travel re
 
 Other mods that provide similar map-selection or travel-restriction features may also be compatible. UFT's dragon-specific setting remains unverified with AFT.
 
-For plugin developers: AFT detours the native map menu's `MarkerClick` callback (Address Library IDs: SE `52208`, AE `53095`). Another plugin that replaces or patches this function may conflict. AFT calls native travel helpers normally, allowing changes to those helpers to remain effective.
+For plugin developers: AFT detours native map-marker selection (Address Library IDs: SE/VR `52208`, AE `53095`). Another plugin that replaces or patches this function may conflict. AFT calls native travel helpers normally, allowing changes to those helpers to remain effective.
 
 ## Requirements and installation
 
-- [SKSE64](https://skse.silverlock.org/), matching your Skyrim runtime.
-- [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching your runtime.
-- VR development builds require [VR Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/58101) **0.309.0 or newer**.
+- [SKSE64 or SKSEVR](https://skse.silverlock.org/), matching your Skyrim runtime.
+- SE/AE/GOG: [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444), with the database matching your runtime.
+- VR: [VR Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/58101) **0.309.0 or newer**.
 - [Microsoft Visual C++ Redistributable (x64)](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
 
 CommonLibSSE-NG, MinHook, and the other build dependencies are linked into the plugin; users do not install them separately.
@@ -89,6 +91,8 @@ The eleven supported Steam runtimes passed the same smoke test with Debug loggin
 GOG `1.6.1179` passed the current regression test, including undiscovered and custom travel, No and Place Marker handling, and door-routed and direct quest targets on a remote World Map Selector map.
 
 Broader development tests on 1.6.1170 covered custom destinations, undiscovered locations, outdoor quest targets, both quest category toggles, native cancellation and marker placement, input suspension/restoration, horse mounting, and dragon cruise enabled/disabled. Remote maps selected through WorldMapSelector also worked in the tested setup. These tests do not establish support for every worldspace or mod combination.
+
+VR `1.4.15` passed marker-category, Yes/No/Place Marker, refusal-recovery, and all-on/custom-off/all-off configuration tests. Tests used a flat presentation of Skyrim VR; headset/controller targeting awaits user feedback. VR compatibility with restriction-removal plugins remains unverified.
 
 ## Reporting problems
 
