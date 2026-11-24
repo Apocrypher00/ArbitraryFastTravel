@@ -4,6 +4,7 @@ Each release tag records the source and dependency versions used to build it. Th
 
 | Release tag | CommonLibSSE-NG | vcpkg builtin baseline |
 | --- | --- | --- |
+| [v1.1.0](https://github.com/Apocrypher00/ArbitraryFastTravel/tree/v1.1.0) | 15.6.0, `cce63b4c8aacd2766c21f44b408df92a3ad9e95c` | `00c5775211f45cd08b37fce0484b4cb940e422ab` |
 | [v1.0.1](https://github.com/Apocrypher00/ArbitraryFastTravel/tree/v1.0.1) | 7.0.0, `8b032fa992750d654d6d38a33731714d8b86be1f` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 | [v1.0.0](https://github.com/Apocrypher00/ArbitraryFastTravel/tree/v1.0.0) | 7.0.0, `8b032fa992750d654d6d38a33731714d8b86be1f` | `ee12231b20c95013c6638d845d04c91559a1d1ff` |
 
@@ -23,7 +24,7 @@ Historical tags retain the dependency revisions and terms recorded for that tag.
 
 Project source: [Apocrypher00/ArbitraryFastTravel](https://github.com/Apocrypher00/ArbitraryFastTravel).
 For a published release, use its matching release tag rather than the current master branch.
-For version 1.0.1, use the `v1.0.1` tag listed above.
+For version 1.1.0, use the `v1.1.0` tag listed above.
 
 Current development dependencies:
 

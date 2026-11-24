@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(
     ArbitraryFastTravel
-    VERSION 1.0.1
+    VERSION 1.1.0
     LANGUAGES CXX
 )
 
@@ -30,8 +30,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/extern/CommonLibVR/cmake/CommonLibSSE.cmake
 
 # CommonLib generates the SKSE plugin metadata from this runtime list.
 # Native boundaries and callback layouts were compared across these runtimes.
-# Flat versions passed the shared map-selection and custom-travel smoke test.
-# VR 1.4.15 is enabled for the initial development test.
+# These versions passed the shared map-selection and custom-travel smoke test.
 add_commonlibsse_plugin(${PROJECT_NAME}
     AUTHOR "Apocrypher00"
     COMPATIBLE_RUNTIMES
