@@ -2,7 +2,7 @@
 #include "MarkerSelectionOverride.h"
 #include "Hooks.h"
 #include "Config.h"
-#include "TravelDialog.h"
+#include "TravelCallbacks.h"
 #include "MapInput.h"
 
 SKSEPluginLoad(const SKSE::LoadInterface* skse)
@@ -16,7 +16,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse)
     // Resolve directly called native functions before preparing detours.
     MarkerSelectionOverride::ResolveNativeFunctions();
     MapInput::ResolveNativeFunctions();
-    TravelDialog::ResolveNativeFunctions();
+    TravelCallbacks::ResolveNativeFunctions();
 
     if (!Hooks::Initialize()) { return false; }
 

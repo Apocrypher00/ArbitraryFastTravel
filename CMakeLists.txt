@@ -54,6 +54,7 @@ add_commonlibsse_plugin(${PROJECT_NAME}
         src/Diagnostics.cpp
         src/MarkerSelectionOverride.cpp
         src/MapInput.cpp
+        src/TravelCallbacks.cpp
         src/TravelDialog.cpp
         src/GameText.cpp
         src/Config.cpp

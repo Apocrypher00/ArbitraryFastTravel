@@ -4,9 +4,6 @@
 
 namespace TravelDialog
 {
-    // Resolve required native addresses after SKSE initialization and before enabling hooks.
-    void ResolveNativeFunctions();
-
     // VR restrictions return the localized refusal format to the caller.
     bool ShowRefusalVR(RE::MapMenu* menu, const char* reason, const char* label);
 
